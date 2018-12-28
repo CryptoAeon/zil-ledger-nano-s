@@ -1,22 +1,132 @@
-// based on https://gitlab.com/NebulousLabs/nanos-app-sia/tree/master
+/*******************************************************************************
+*
+*  (c) 2016 Ledger
+*  (c) 2018 Nebulous
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+********************************************************************************/
+
+// This code also serves as a walkthrough for writing your own Ledger Nano S
+// app. Begin by reading this file top-to-bottom, and proceed to the next file
+// when directed. It is recommended that you install this app on your Nano S
+// so that you can see how each section of code maps to real-world behavior.
+// This also allows you to experiment by modifying the code and observing the
+// effect on the app.
+//
+// I'll begin by describing the high-level architecture of the app. The entry
+// point is this file, main.c, which initializes the app and runs the APDU
+// request/response loop. The loop reads APDU packets from the computer, which
+// instructs it to run various commands. The Zilliqa app supports three commands,
+// each defined in a separate file: getPublicKey and signHash.
+// These each make use of Zilliqa-specific functions, which are defined in zilliqa.c.
+// Finally, some global variables and helper functions are declared in ux.h.
+//
+// Each command consists of a command handler and a set of screens. Each
+// screen has an associated set of elements that can be rendered, a
+// preprocessor that controls which elements are rendered, and a button
+// handler that processes user input. The command handler is called whenever
+// zil_main receives an APDU requesting that command, and is responsible for
+// displaying the first screen of the command. Control flow then moves to the
+// button handler for that screen, which selects the next screen to display
+// based on which button was pressed. Button handlers are also responsible for
+// sending APDU replies back to the computer.
+//
+// The control flow can be a little confusing to understand, because the
+// button handler isn't really on the "main execution path" -- it's only
+// called via interrupt, typically while execution is blocked on an
+// io_exchange call. (In general, it is instructive to think of io_exchange as
+// the *only* call that can block.) io_exchange exchanges APDU packets with
+// the computer: first it sends a response packet, then it receives a request
+// packet. This ordering may seem strange, but it makes sense when you
+// consider that the Nano S has to do work in between receiving a command and
+// replying to it. Thus, the packet sent by io_exchange is a *response* to the
+// previous request, and the packet received is the next request.
+//
+// But there's a problem with this flow: in most cases, we can't respond to
+// the command request until we've received some user input, e.g. approving a
+// signature. If io_exchange is the only call that blocks, how can we tell it
+// to wait for user input? The answer is a special flag, IO_ASYNC_REPLY. When
+// io_exchange is called with this flag, it blocks, but it doesn't send a
+// response; instead, it just waits for a new request. Later on, we make a
+// separate call to io_exchange, this time with the IO_RETURN_AFTER_TX flag.
+// This call sends the response, and then returns immediately without waiting
+// for the next request. Visually, it is clear that these flags have opposite
+// effects on io_exchange:
+//
+//                                      ----Time--->
+//    io_exchange:        [---Send Response---|---Wait for Request---]
+//    IO_ASYNC_REPLY:                           ^Only do this part^
+//    IO_RETURN_AFTER_TX:  ^Only do this part^
+//
+// So a typical command flow looks something like this. We start in zil_main,
+// which is an infinite loop that starts by calling io_exchange. It receives
+// an APDU request from the computer and calls the associated command handler.
+// The handler displays a screen, e.g. "Generate address?", and sets the
+// IO_ASYNC_REPLY flag before returning. Control returns to zil_main, which
+// loops around and calls io_exchange again; due to the flag, it now blocks.
+// Everything is frozen until the user decides which button to press. When
+// they eventually press the "Approve" button, the button handler jumps into
+// action. It generates the address, constructs a response APDU containing
+// that address, calls io_exchange with IO_RETURN_AFTER_TX, and redisplays the
+// main menu. When a new command arrives, it will be received by the blocked
+// io_exchange in zil_main.
+//
+// More complex commands may require multiple requests and responses. There
+// are two approaches to handling this. One approach is to treat each command
+// handler as a self-contained unit: that is, the main loop should only handle
+// the *first* request for a given command. Subsequent requests are handled by
+// additional io_exchange calls within the command handler. The other approach
+// is to let the main loop handle all requests, and design the handlers so
+// that they can "pick up where they left off." Both designs have tradeoffs.
+//
+// On the other end of the spectrum, there are simple commands that do not
+// require any user input. Many Nano S apps have a "getVersion" command that
+// replies to the computer with the app's version. In this case, it is
+// sufficient for the command handler to prepare the response APDU and allow
+// the main loop to send it immediately, without setting IO_ASYNC_REPLY.
+//
+// The important things to remember are:
+// - io_exchange is the only blocking call
+// - the main loop invokes command handlers, which display screens and set button handlers
+// - button handlers switch between screens and reply to the computer
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <os_io_seproxyhal.h>
 #include "glyphs.h"
-
 #include "zilliqa.h"
 #include "ux.h"
 
-
+// These are global variables declared in ux.h. They can't be defined there
+// because multiple files include ux.h; they need to be defined in exactly one
+// place. See ux.h for their descriptions.
 commandContext global;
 ux_state_t ux;
+
+// Here we define the main menu, using the Ledger-provided menu API. This menu
+// turns out to be fairly unimportant for Nano S apps, since commands are sent
+// by the computer instead of being initiated by the user. It typically just
+// contains an idle screen and a version screen.
 
 // This is a forward declaration, since menu_about needs to reference
 // menu_main.
 static const ux_menu_entry_t menu_main[];
 
 static const ux_menu_entry_t menu_about[] = {
+	// I won't bother describing how menus work in detail, since it's fairly
+	// self-evident and not very useful; but to save you some trouble, this
+	// first element is defined with explicit fields, so you can see what they
+	// all are.
 	{
 		.menu     = NULL,       // another menu entry, displayed when this item is "entered"
 		.callback = NULL,       // a function that takes a userid, called when this item is entered
@@ -27,7 +137,6 @@ static const ux_menu_entry_t menu_about[] = {
 		.text_x   = 0,          // the x offset of the lines of text; only used if non-zero
 		.icon_x   = 0,          // the x offset of the icon; only used if non-zero
 	},
-
 	// This element references a custom glyph, C_icon_back. This glyph is
 	// defined in glyphs.c, which was generated by the Makefile from the
 	// corresponding .gif file in the glyphs/ folder. If you drop your own
@@ -71,25 +180,22 @@ void io_exchange_with_code(uint16_t code, uint16_t tx) {
 #define INS_GET_VERSION    0x01
 #define INS_GET_PUBLIC_KEY 0x02
 #define INS_SIGN_HASH      0x04
-#define INS_GET_TXN_HASH   0x08
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
-// in sia_main. It's common to set *flags |= IO_ASYNC_REPLY, but tx is
+// in zil_main. It's common to set *flags |= IO_ASYNC_REPLY, but tx is
 // typically unused unless the handler is immediately sending a response APDU.
 typedef void handler_fn_t(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx);
 
 handler_fn_t handleGetVersion;
 handler_fn_t handleGetPublicKey;
 handler_fn_t handleSignHash;
-handler_fn_t handleCalcTxnHash;
 
 static handler_fn_t* lookupHandler(uint8_t ins) {
 	switch (ins) {
 	case INS_GET_VERSION:    return handleGetVersion;
 	case INS_GET_PUBLIC_KEY: return handleGetPublicKey;
 	case INS_SIGN_HASH:      return handleSignHash;
-	case INS_GET_TXN_HASH:   return handleCalcTxnHash;
 	default:                 return NULL;
 	}
 }
@@ -112,9 +218,7 @@ static handler_fn_t* lookupHandler(uint8_t ins) {
 // subsequent io_exchange call. The handler may also throw an exception, which
 // will be caught, converted to an error code, appended to the response APDU,
 // and sent in the next io_exchange call.
-static void sia_main(void) {
-	// Mark the transaction context as uninitialized.
-	global.calcTxnHashContext.initialized = false;
+static void zil_main(void) {
 
 	volatile unsigned int rx = 0;
 	volatile unsigned int tx = 0;
@@ -128,7 +232,7 @@ static void sia_main(void) {
 		// to explicit THROWs in user code, syscalls (prefixed with os_ or
 		// cx_) may also throw exceptions.
 		//
-		// In sia_main, this TRY block serves to catch any thrown exceptions
+		// In zil_main, this TRY block serves to catch any thrown exceptions
 		// and convert them to response codes, which are then sent in APDUs.
 		// However, EXCEPTION_IO_RESET will be re-thrown and caught by the
 		// "true" main function defined at the bottom of this file.
@@ -166,10 +270,7 @@ static void sia_main(void) {
 				// Convert the exception to a response code. All error codes
 				// start with 6, except for 0x9000, which is a special
 				// "success" code. Every APDU payload should end with such a
-				// code, even if no other data is sent. For example, when
-				// calcTxnHash is processing packets of txn data, it replies
-				// with just 0x9000 to indicate that it is ready to receive
-				// more data.
+				// code, even if no other data is sent.
 				//
 				// If the first byte is not a 6, mask it with 0x6800 to
 				// convert it to a proper error code. I'm not totally sure why
@@ -299,7 +400,7 @@ __attribute__((section(".boot"))) int main(void) {
 				USB_power(0);
 				USB_power(1);
 				ui_idle();
-				sia_main();
+				zil_main();
 			}
 			CATCH(EXCEPTION_IO_RESET) {
 				// reset IO and UX before continuing

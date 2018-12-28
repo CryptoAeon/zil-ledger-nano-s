@@ -1,6 +1,3 @@
-#ifndef NANOS_ZIL_ZILLIQA_H
-#define NANOS_ZIL_ZILLIQA_H
-
 // Each command has some state associated with it that sticks around for the
 // life of the command. A separate context_t struct should be defined for each
 // command.
@@ -28,26 +25,11 @@ typedef struct {
 	uint8_t partialHashStr[13];
 } signHashContext_t;
 
-typedef struct {
-	uint32_t keyIndex;
-	bool sign;
-	uint8_t elemLen;
-	uint8_t displayIndex;
-	uint8_t elemPart; // screen index of elements
-	txn_state_t txn;
-	// NUL-terminated strings for display
-	uint8_t labelStr[40]; // variable length
-	uint8_t fullStr[128]; // variable length
-	uint8_t partialStr[13];
-	bool initialized; // protects against certain attacks
-} calcTxnHashContext_t;
-
 // To save memory, we store all the context types in a single global union,
 // taking advantage of the fact that only one command is executed at a time.
 typedef union {
 	getPublicKeyContext_t getPublicKeyContext;
 	signHashContext_t signHashContext;
-	calcTxnHashContext_t calcTxnHashContext;
 } commandContext;
 extern commandContext global;
 
@@ -80,5 +62,3 @@ void ui_idle(void);
 // io_exchange with the IO_RETURN_AFTER_TX flag. tx is the current offset
 // within G_io_apdu_buffer (before the code is appended).
 void io_exchange_with_code(uint16_t code, uint16_t tx);
-
-#endif // NANOS_ZIL_ZILLIQA_H

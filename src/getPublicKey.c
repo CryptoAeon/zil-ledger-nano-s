@@ -22,7 +22,6 @@
 #include <stdbool.h>
 #include <os.h>
 #include <os_io_seproxyhal.h>
-
 #include "zilliqa.h"
 #include "ux.h"
 
@@ -129,21 +128,27 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             // always add it explicitly; this prevents a bug if we reorder the
             // statements later.
             deriveZilKeyPair(ctx->keyIndex, NULL, &publicKey);
+            P();
             extractPubkeyBytes(G_io_apdu_buffer + tx, &publicKey);
+            P();
             tx += 32;
             pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
+            P();
             tx += 76;
-
             // Flush the APDU buffer, sending the response.
             io_exchange_with_code(SW_OK, tx);
+            P();
             // Prepare the comparison screen, filling in the header and body text.
             os_memmove(ctx->typeStr, "Compare:", 9);
+            P();
             if (ctx->genAddr) {
+                P();
                 // The APDU buffer already contains the hex-encoded address, so
                 // copy it directly.
                 os_memmove(ctx->fullStr, G_io_apdu_buffer + 32, 76);
                 ctx->fullStr[76] = '\0';
             } else {
+                P();
                 // The APDU buffer contains the raw bytes of the public key, so
                 // first we need to convert to a human-readable form.
                 bin2hex(ctx->fullStr, G_io_apdu_buffer, 32);
@@ -151,6 +156,7 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             os_memmove(ctx->partialStr, ctx->fullStr, 12);
             ctx->partialStr[12] = '\0';
             ctx->displayIndex = 0;
+            P();
             // Display the comparison screen.
             UX_DISPLAY(ui_getPublicKey_compare, ui_prepro_getPublicKey_compare);
             break;
@@ -177,7 +183,7 @@ void handleGetPublicKey(uint8_t p1,
         // Although THROW is technically a general-purpose exception
         // mechanism, within a command handler it is basically just a
         // convenient way of bailing out early and sending an error code to
-        // the computer. The exception will be caught by sia_main, which
+        // the computer. The exception will be caught by zil_main, which
         // appends the code to the response APDU and sends it, much like
         // io_exchange_with_code. THROW should not be called from
         // preprocessors or button handlers.

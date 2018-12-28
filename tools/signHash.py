@@ -8,25 +8,34 @@ import struct
 def apduPrefix():
     # https://en.wikipedia.org/wiki/Smart_card_application_protocol_data_unit
     CLA = bytes.fromhex("E0")
-    INS = b"\x02"
+    INS = b"\x04"
     P1 = b"\x00"
-    P2 = b"\x01"
+    P2 = b"\x00"
     return CLA + INS + P1 + P2
 
-def exchange(apdu):
-    dongle = getDongle(True)
-    return dongle.exchange(apdu)
-
 def main(args):
-    payload = struct.pack("<I", args.index)
+    indexBytes = struct.pack("<I", args.index)
+
+    sig = args.signature
+    if len(sig) > 64:
+        sig = sig[:64]
+    sigBytes = bytes(sig, "utf-8")
+
+    prefix = apduPrefix()
+    payload = indexBytes + sigBytes
     L_c = bytes([len(payload)])
-    apdu = apduPrefix() + L_c + payload
-    response = exchange(apdu)
-    print(response.hex())
+    apdu = prefix + L_c + payload
+
+    dongle = getDongle(True)
+    result = dongle.exchange(apdu)
+
+    respLen = int.from_bytes(result[:2], byteorder='big')
+    print("Response: " + result[:respLen].hex())
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('--signature', '-s', type=str, required=True)
     parser.add_argument('--index', '-i', type=int, required=True)
     args = parser.parse_args()
     main(args)

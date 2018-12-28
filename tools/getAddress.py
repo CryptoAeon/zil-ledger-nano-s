@@ -10,7 +10,7 @@ def apduPrefix():
     CLA = bytes.fromhex("E0")
     INS = b"\x02"
     P1 = b"\x00"
-    P2 = b"\x01"
+    P2 = b"\x00"
     return CLA + INS + P1 + P2
 
 def exchange(apdu):
