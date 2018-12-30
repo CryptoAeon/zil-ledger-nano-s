@@ -17,18 +17,19 @@ void deriveZilKeyPair(uint32_t index,
                             index | 0x80000000,
                             0x80000000,
                             0x80000000};
+
     os_perso_derive_node_bip32(CX_CURVE_SECP256K1, bip32Path, 5, keySeed, NULL);
-    PRINTF("keySeed:\n %.*H \n", 32, keySeed);
-    cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, sizeof(keySeed), &pk);
+    PRINTF("keySeed:\n %.*H \n\n", 32, keySeed);
+    cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &pk);
 
     if (publicKey) {
         cx_ecfp_init_public_key(CX_CURVE_SECP256K1, NULL, 0, publicKey);
-        PRINTF("publicKey:\n %.*H \n", publicKey->W_len, publicKey->W);
         cx_ecfp_generate_pair(CX_CURVE_SECP256K1, publicKey, &pk, 1);
+        PRINTF("publicKey:\n %.*H \n\n", publicKey->W_len, publicKey->W);
     }
     if (privateKey) {
         *privateKey = pk;
-        PRINTF("privateKey:\n %.*H \n", 32, pk.d);
+        PRINTF("privateKey:\n %.*H \n\n", 32, pk.d);
     }
 
     os_memset(keySeed, 0, sizeof(keySeed));
@@ -43,6 +44,7 @@ void extractPubkeyBytes(unsigned char *dst, cx_ecfp_public_key_t *publicKey) {
     if (publicKey->W[32] & 1) {
         dst[31] |= 0x80;
     }
+    PRINTF("dst:\n %.*H \n\n", 32, publicKey->W);
 }
 
 void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash) {

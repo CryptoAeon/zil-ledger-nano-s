@@ -47,8 +47,10 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
     int fullSize = ctx->genAddr ? 76 : 64;
     if ((element->component.userid == 1 && ctx->displayIndex == 0) ||
         (element->component.userid == 2 && ctx->displayIndex == fullSize - 12)) {
+        P();
         return NULL;
     }
+    P();
     return element;
 }
 
@@ -128,19 +130,18 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             // always add it explicitly; this prevents a bug if we reorder the
             // statements later.
             deriveZilKeyPair(ctx->keyIndex, NULL, &publicKey);
-            P();
             extractPubkeyBytes(G_io_apdu_buffer + tx, &publicKey);
             P();
             tx += 32;
             pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
             P();
             tx += 76;
+
             // Flush the APDU buffer, sending the response.
             io_exchange_with_code(SW_OK, tx);
-            P();
+
             // Prepare the comparison screen, filling in the header and body text.
             os_memmove(ctx->typeStr, "Compare:", 9);
-            P();
             if (ctx->genAddr) {
                 P();
                 // The APDU buffer already contains the hex-encoded address, so

@@ -24,6 +24,11 @@ def main(args):
     response = exchange(apdu)
     print(response.hex())
 
+    offset = 1 + response[0]
+    address = response[offset + 1 : offset + 1 + response[offset]]
+    print("Public key " + response[1 : 1 + response[0]].hex())
+    print(str(len(address)) + ": " + address.hex())
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
