@@ -1,3 +1,6 @@
+#ifndef ZIL_NANOS_ZILLIQA_H
+#define ZIL_NANOS_ZILLIQA_H
+
 #define P() PRINTF("\n%s - %s:%d \n", __FILE__, __func__, __LINE__);
 
 // exception codes
@@ -33,3 +36,5 @@ void deriveZilKeyPair(uint32_t index, cx_ecfp_private_key_t *privateKey, cx_ecfp
 // Ledger seed, and uses it to produce a 64-byte signature of the provided
 // 32-byte hash. The key is cleared from memory after signing.
 void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash);
+
+#endif

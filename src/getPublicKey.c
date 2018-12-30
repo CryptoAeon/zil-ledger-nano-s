@@ -50,7 +50,6 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
         P();
         return NULL;
     }
-    P();
     return element;
 }
 
