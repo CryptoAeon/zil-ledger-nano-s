@@ -128,13 +128,15 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             // buffer. Even though we know that tx starts at 0, it's best to
             // always add it explicitly; this prevents a bug if we reorder the
             // statements later.
+
+            // 1. Generate key pair
             deriveZilKeyPair(ctx->keyIndex, NULL, &publicKey);
             extractPubkeyBytes(G_io_apdu_buffer + tx, &publicKey);
             P();
             tx += 32;
             pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
             P();
-            tx += 76;
+            tx += 20;
 
             // Flush the APDU buffer, sending the response.
             io_exchange_with_code(SW_OK, tx);
