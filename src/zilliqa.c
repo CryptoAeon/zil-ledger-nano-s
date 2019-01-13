@@ -69,7 +69,7 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash) {
 
     unsigned int info = 0;
     cx_ecschnorr_sign(&privateKey,
-                      CX_ECSCHNORR_Z,
+                      CX_RND_TRNG | CX_ECSCHNORR_Z,
                       CX_SHA256,
                       hash,
                       32,
@@ -91,6 +91,10 @@ void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen) {
 
 void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {
     // TODO implement
+    // 1. Get the seed key (ledger wallet)
+    // 2. Generate a key pair using CX_CURVE_SECP256K1 (same curve is used by 'genkeypair.cpp')
+    // 3. Apply SHA2-256 to the pub key
+    // 4. Extract 20 MSBs from the above result
 }
 
 int bin2dec(uint8_t *dst, uint64_t n) {
