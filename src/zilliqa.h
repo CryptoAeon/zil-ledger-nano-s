@@ -3,6 +3,9 @@
 
 #define P() PRINTF("\n%s - %s:%d \n", __FILE__, __func__, __LINE__);
 
+// Constants
+#define SHA256_HASH_LEN 32
+
 // exception codes
 #define SW_DEVELOPER_ERR 0x6B00
 #define SW_INVALID_PARAM 0x6B01
@@ -13,6 +16,9 @@
 // macros for converting raw bytes to uint64_t
 #define U8BE(buf, off) (((uint64_t)(U4BE(buf, off))     << 32) | ((uint64_t)(U4BE(buf, off + 4)) & 0xFFFFFFFF))
 #define U8LE(buf, off) (((uint64_t)(U4LE(buf, off + 4)) << 32) | ((uint64_t)(U4LE(buf, off))     & 0xFFFFFFFF))
+
+// Get the seed key for Zilliqa BIP32 path
+uint8_t * getKeySeed(uint32_t index);
 
 // bin2hex converts binary to hex and appends a final NUL byte.
 void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen);
