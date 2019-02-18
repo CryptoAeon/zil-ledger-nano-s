@@ -1,6 +1,8 @@
 #ifndef ZIL_NANOS_UX_H
 #define ZIL_NANOS_UX_H
 
+#include "txn.h"
+
 typedef struct {
 	uint32_t keyIndex;
 	bool genAddr;
@@ -24,11 +26,26 @@ typedef struct {
 	uint8_t partialHashStr[13];
 } signHashContext_t;
 
+typedef struct {
+	uint32_t keyIndex;
+	bool sign;
+	uint8_t elemLen;
+	uint8_t displayIndex;
+	uint8_t elemPart; // screen index of elements
+	txn_state_t txn;
+	// NUL-terminated strings for display
+	uint8_t labelStr[40]; // variable length
+	uint8_t fullStr[128]; // variable length
+	uint8_t partialStr[13];
+	bool initialized; // protects against certain attacks
+} calcTxnHashContext_t;
+
 // To save memory, we store all the context types in a single global union,
 // taking advantage of the fact that only one command is executed at a time.
 typedef union {
 	getPublicKeyContext_t getPublicKeyContext;
 	signHashContext_t signHashContext;
+	calcTxnHashContext_t calcTxnHashContext;
 } commandContext;
 extern commandContext global;
 
