@@ -42,10 +42,9 @@ void deriveZilKeyPair(uint32_t index,
     P();
 }
 
-void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash) {
+void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned int hashLen) {
     PRINTF("index: %d\n", index);
     uint8_t *keySeed = getKeySeed(index);
-
     PRINTF("keySeed:    %.*H \n", 32, keySeed);
 
     cx_ecfp_private_key_t privateKey;
@@ -57,12 +56,14 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash) {
                       CX_RND_TRNG | CX_ECSCHNORR_Z,
                       CX_SHA256,
                       hash,
-                      32,
+                      hashLen,
                       dst,
                       72,
                       &info);
     PRINTF("signature: %.*H\n", 72, dst);
-    PRINTF("info: %d\n", info);
+
+    os_memset(keySeed, 0, sizeof(keySeed));
+    os_memset(&privateKey, 0, sizeof(privateKey));
 }
 
 void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {

@@ -180,7 +180,7 @@ void io_exchange_with_code(uint16_t code, uint16_t tx) {
 #define INS_GET_VERSION    0x01
 #define INS_GET_PUBLIC_KEY 0x02
 #define INS_SIGN_HASH      0x04
-#define INS_GET_TXN_HASH   0x08
+#define INS_SIGN_TXN_HASH  0x08
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
@@ -191,14 +191,14 @@ typedef void handler_fn_t(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t 
 handler_fn_t handleGetVersion;
 handler_fn_t handleGetPublicKey;
 handler_fn_t handleSignHash;
-handler_fn_t handleCalcTxnHash;
+handler_fn_t handleSignTxn;
 
 static handler_fn_t* lookupHandler(uint8_t ins) {
 	switch (ins) {
 		case INS_GET_VERSION:    return handleGetVersion;
 		case INS_GET_PUBLIC_KEY: return handleGetPublicKey;
 		case INS_SIGN_HASH:      return handleSignHash;
-		case INS_GET_TXN_HASH:   return handleCalcTxnHash;
+		case INS_SIGN_TXN_HASH:  return handleSignTxn;
 		default:                 return NULL;
 	}
 }
@@ -222,8 +222,6 @@ static handler_fn_t* lookupHandler(uint8_t ins) {
 // will be caught, converted to an error code, appended to the response APDU,
 // and sent in the next io_exchange call.
 static void zil_main(void) {
-	// Mark the transaction context as uninitialized.
-	global.calcTxnHashContext.initialized = false;
 
 	volatile unsigned int rx = 0;
 	volatile unsigned int tx = 0;

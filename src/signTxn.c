@@ -1,22 +1,3 @@
-// This file contains the implementation of the signHash command. The files
-// for the other commands will have the same basic structure: A set of screens
-// (comprising the screen elements, preprocessor, and button handler) followed
-// by the command handler itself.
-//
-// A high-level description of signHash is as follows. The user initiates the
-// command on their computer, specifying the hash they would like to sign and
-// the key they would like to sign with. The command handler then displays the
-// hash on the device and asks the user to compare it to the hash shown on the
-// computer. The user can press the left and right buttons to scroll through
-// the hash. When the user finishes comparing, they press both buttons to
-// proceed to the next screen, which asks the user to approve or deny signing
-// the hash. If the user presses the left button, the action is denied and a
-// rejection code is sent to the computer. If they press the right button, the
-// action is approved and the requested signature is computed and sent to the
-// computer. In either case, the command ends by returning to the main screen.
-//
-// Keep this description in mind as you read through the implementation.
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <os.h>
@@ -24,10 +5,7 @@
 #include "zilliqa.h"
 #include "ux.h"
 
-// Get a pointer to signHash's state variables. This is purely for
-// convenience, so that we can refer to these variables concisely from any
-// signHash-related function.
-static signHashContext_t *ctx = &global.signHashContext;
+static signTxnContext_t *ctx = &global.signTxnContext;
 
 // Define the approval screen. This is where the user will confirm that they
 // want to sign the hash. This UI layout is very common: a background, two
@@ -51,7 +29,7 @@ static const bagl_element_t ui_signHash_approve[] = {
 
 	// The two lines of text, which together form a complete sentence:
 	//
-	//    Sign this Hash
+	//    Sign this Txn
 	//    with Key #123?
 	//
 	// The first line is always the same, but the second line must reflect
@@ -69,21 +47,10 @@ static const bagl_element_t ui_signHash_approve[] = {
 	// Nano S screen is only wide enough for a small number of characters, so
 	// you should never need a buffer larger than 40 bytes. Later on, we'll
 	// demonstrate a technique for displaying larger strings.
-	UI_TEXT(0x00, 0, 12, 128, "Sign this Hash"),
-	UI_TEXT(0x00, 0, 26, 128, global.signHashContext.indexStr),
+	UI_TEXT(0x00, 0, 12, 128, "Sign this Txn"),
+	UI_TEXT(0x00, 0, 26, 128, global.signTxnContext.indexStr)
 };
 
-// This is the button handler for the approval screen. When you call
-// UX_DISPLAY on screen "foo", it looks for a button handler named
-// "foo_button", and it calls this handler whenever a button is pressed while
-// foo is displayed. If you don't define a _button handler, you'll get a
-// compile-time error.
-//
-// The 'button_mask' argument is a bitfield that indicates which buttons are
-// being pressed, while 'button_mask_counter' counts how many "ticks" the
-// buttons have been held for, where each tick is 100ms. I haven't come across
-// any apps that use this counter, but it could be useful for e.g. performing
-// an action only if a button is held for 3 seconds.
 static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigned int button_mask_counter) {
 	switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_LEFT: // REJECT
@@ -98,7 +65,7 @@ static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigne
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT: // APPROVE
 		// Derive the secret key and sign the hash, storing the signature in
 		// the APDU buffer.
-		deriveAndSign(G_io_apdu_buffer, ctx->keyIndex, ctx->hash, 32);
+		deriveAndSign(G_io_apdu_buffer, ctx->keyIndex, ctx->msg, ctx->msgLen);
 		// Send the data in the APDU buffer, along with a special code that
 		// indicates approval. 64 is the number of bytes in the response APDU,
 		// sans response code.
@@ -156,7 +123,7 @@ static const bagl_element_t* ui_prepro_signHash_compare(const bagl_element_t *el
 		return (ctx->displayIndex == 0) ? NULL : element;
 	case 2:
 		// 0x02 is the right, so return NULL if we're displaying the end of the text.
-		return (ctx->displayIndex == sizeof(ctx->hexHash)-12) ? NULL : element;
+		return (ctx->displayIndex == sizeof(ctx->hexMsg) - 12) ? NULL : element;
 	default:
 		// Always display all other elements.
 		return element;
@@ -191,17 +158,17 @@ static unsigned int ui_signHash_compare_button(unsigned int button_mask, unsigne
 		// text. os_memmove is the Ledger SDK's version of memmove (there is
 		// no os_memcpy). In practice, I don't think it matters whether you
 		// use os_memmove or the standard memmove from <string.h>.
-		os_memmove(ctx->partialHashStr, ctx->hexHash+ctx->displayIndex, 12);
+		os_memmove(ctx->partialHashStr, ctx->hexMsg + ctx->displayIndex, 12);
 		// Re-render the screen.
 		UX_REDISPLAY();
 		break;
 
 	case BUTTON_RIGHT:
 	case BUTTON_EVT_FAST | BUTTON_RIGHT: // SEEK RIGHT
-		if (ctx->displayIndex < sizeof(ctx->hexHash)-12) {
+		if (ctx->displayIndex < sizeof(ctx->hexMsg)-12) {
 			ctx->displayIndex++;
 		}
-		os_memmove(ctx->partialHashStr, ctx->hexHash+ctx->displayIndex, 12);
+		os_memmove(ctx->partialHashStr, ctx->hexMsg + ctx->displayIndex, 12);
 		UX_REDISPLAY();
 		break;
 
@@ -222,26 +189,26 @@ static unsigned int ui_signHash_compare_button(unsigned int button_mask, unsigne
 	return 0;
 }
 
-// handleSignHash is the entry point for the signHash command. Like all
-// command handlers, it is responsible for reading command data from
-// dataBuffer, initializing the command context, and displaying the first
-// screen of the command.
-void handleSignHash(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
-	// Read the index of the signing key. U4LE is a helper macro for
-	// converting a 4-byte buffer to a uint32_t.
+void handleSignTxn(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+	P();
+    // Read the key index
 	ctx->keyIndex = U4LE(dataBuffer, 0);
+    PRINTF("ctx->keyIndex: %d \n", ctx->keyIndex);
+	// Read the hash len
+	ctx->msgLen = U4LE(dataBuffer, 4);
+    PRINTF("ctx->msgLen: %d \n", ctx->msgLen);
 	// Read the hash.
-	os_memmove(ctx->hash, dataBuffer+4, sizeof(ctx->hash));
+	os_memmove(ctx->msg, dataBuffer+8, ctx->msgLen);
 
 	// Prepare to display the comparison screen by converting the hash to hex
 	// and moving the first 12 characters into the partialHashStr buffer.
-	bin2hex(ctx->hexHash, ctx->hash, sizeof(ctx->hash));
-	os_memmove(ctx->partialHashStr, ctx->hexHash, 12);
+	bin2hex(ctx->hexMsg, ctx->msg, ctx->msgLen);
+	os_memmove(ctx->partialHashStr, ctx->hexMsg, 12);
 	ctx->partialHashStr[12] = '\0';
 	ctx->displayIndex = 0;
 
-	PRINTF("hash:    %.*H \n", 32, ctx->hash);
-	PRINTF("hexHash: %.*H \n", 64, ctx->hexHash);
+	PRINTF("msg:    %.*H \n", ctx->msgLen, ctx->msg);
+	PRINTF("msgHex: %.*H \n", 2 * ctx->msgLen, ctx->hexMsg);
 
 	// Call UX_DISPLAY to display the comparison screen, passing the
 	// corresponding preprocessor. You might ask: Why doesn't UX_DISPLAY
@@ -254,39 +221,3 @@ void handleSignHash(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLe
 	// press first.
 	*flags |= IO_ASYNCH_REPLY;
 }
-
-// Now that we've seen the individual pieces, we can construct a full picture
-// of what the signHash command looks like.
-//
-// The command begins when zil_main reads an APDU packet from the computer
-// with INS == INS_SIGN_HASH. zil_main looks up the appropriate handler,
-// handleSignHash, and calls it. handleSignHash reads the command data,
-// prepares and displays the comparison screen, and sets the IO_ASYNC_REPLY
-// flag. Control returns to zil_main, which blocks when it reaches the
-// io_exchange call.
-//
-// UX_DISPLAY was called with the ui_prepro_signHash_compare preprocessor, so
-// that preprocessor is now called each time the compare screen is rendered.
-// Since we are initially displaying the beginning of the hash, the
-// preprocessor hides the left arrow. The user presses and holds the right
-// button, which triggers the button handler to advance the displayIndex every
-// 100ms. Each advance requires redisplaying the screen via UX_REDISPLAY(),
-// and thus rerunning the preprocessor. As soon as the right button is
-// pressed, the preprocessor detects that text has scrolled off the left side
-// of the screen, so it unhides the left arrow; when the end of the hash is
-// reached, it hides the right arrow.
-//
-// When the user has finished comparing the hashes, they press both buttons
-// together, triggering ui_signHash_compare_button to prepare the approval
-// screen and call UX_DISPLAY on ui_signHash_approve. A NULL preprocessor is
-// specified for this screen, since we don't need to filter out any of its
-// elements. We'll assume that the user presses the 'approve' button, causing
-// the button handler to place the hash in G_io_apdu_buffer and call
-// io_exchange_with_code, which sends the response APDU to the computer with
-// the IO_RETURN_AFTER_TX flag set. The button handler then calls ui_idle,
-// thus returning to the main menu.
-//
-// This completes the signHash command. Back in zil_main, io_exchange is still
-// blocked, waiting for the computer to send a new request APDU. For the next
-// section of this walkthrough, we will assume that the next APDU requests the
-// getPublicKey command, so proceed to getPublicKey.c.

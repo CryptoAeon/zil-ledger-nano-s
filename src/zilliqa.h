@@ -41,9 +41,9 @@ void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey);
 // seed. Either privateKey or publicKey may be NULL.
 void deriveZilKeyPair(uint32_t index, cx_ecfp_private_key_t *privateKey, cx_ecfp_public_key_t *publicKey);
 
-// deriveAndSign derives an Ed25519 private key from an index and the
-// Ledger seed, and uses it to produce a 64-byte signature of the provided
-// 32-byte hash. The key is cleared from memory after signing.
-void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash);
+// deriveAndSign derives an ECFP private key from an user specified index and the
+// Ledger seed, and uses it to produce a 72-byte signature of the provided hash.
+// The key is cleared from memory after signing.
+void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned int hashLen);
 
 #endif
