@@ -47,10 +47,12 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned i
     uint8_t *keySeed = getKeySeed(index);
     PRINTF("keySeed:    %.*H \n", 32, keySeed);
 
+    P();
     cx_ecfp_private_key_t privateKey;
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, sizeof(keySeed), &privateKey);
     PRINTF("privateKey: %.*H \n", 32, privateKey.d);
 
+    PRINTF("hash: %.*H \n", hashLen, hash);
     unsigned int info = 0;
     cx_ecschnorr_sign(&privateKey,
                       CX_RND_TRNG | CX_ECSCHNORR_Z,
