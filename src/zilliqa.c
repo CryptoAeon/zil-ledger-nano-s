@@ -49,7 +49,7 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned i
 
     P();
     cx_ecfp_private_key_t privateKey;
-    cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, sizeof(keySeed), &privateKey);
+    cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
     PRINTF("privateKey: %.*H \n", 32, privateKey.d);
 
     PRINTF("hash: %.*H \n", hashLen, hash);
