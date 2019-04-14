@@ -25,7 +25,7 @@ include $(BOLOS_SDK)/Makefile.defines
 #########
 
 APPNAME    = Zilliqa
-ICONNAME   = zilliqa-nano-s.png
+ICONNAME   = zilliqa-nano-s.gif
 APPVERSION = 0.1.1
 
 # The --path argument here restricts which BIP32 paths the app is allowed to derive.
