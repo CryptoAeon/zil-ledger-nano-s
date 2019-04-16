@@ -29,8 +29,7 @@ def main(args):
     dongle = getDongle(True)
     result = dongle.exchange(apdu)
 
-    respLen = int.from_bytes(result[:2], byteorder='big')
-    print("Response: " + result[:respLen].hex())
+    print("Response: " + result[0:72].hex())
 
 
 if __name__ == "__main__":

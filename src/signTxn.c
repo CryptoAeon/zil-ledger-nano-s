@@ -55,7 +55,7 @@ static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigne
 		// Send the data in the APDU buffer, along with a special code that
 		// indicates approval. 64 is the number of bytes in the response APDU,
 		// sans response code.
-		io_exchange_with_code(SW_OK, 64);
+		io_exchange_with_code(SW_OK, 72);
 		// Return to the main screen.
 		ui_idle();
 		break;
