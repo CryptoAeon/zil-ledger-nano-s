@@ -32,21 +32,7 @@ static const bagl_element_t ui_signHash_approve[] = {
 	//    Sign this Txn
 	//    with Key #123?
 	//
-	// The first line is always the same, but the second line must reflect
-	// which signing key is used. Hence, the first UI_TEXT points to a
-	// compile-time string literal, while the second points to a buffer whose
-	// contents we can modify.
-	//
-	// There is an important restriction here, though: the elements of a
-	// screen are declared const, so their fields cannot be modified at
-	// runtime. In other words, we can change the *contents* of the text
-	// buffer, but we cannot change the *pointer* to the buffer, and thus we
-	// cannot resize it. (This is also why we cannot write ctx->indexStr: ctx
-	// is not const.) So it is important to ensure that the buffer will be
-	// large enough to hold any string we want to display. In practice, the
-	// Nano S screen is only wide enough for a small number of characters, so
-	// you should never need a buffer larger than 40 bytes. Later on, we'll
-	// demonstrate a technique for displaying larger strings.
+	// Similar gotchas with signHash.c
 	UI_TEXT(0x00, 0, 12, 128, "Sign this Txn"),
 	UI_TEXT(0x00, 0, 26, 128, global.signTxnContext.indexStr)
 };
@@ -98,7 +84,7 @@ static const bagl_element_t ui_signHash_compare[] = {
 	// UI_BACKGROUND() also has userid == 0. And if you revisit the approval
 	// screen, you'll see that all of those elements have userid == 0 as well.
 	UI_TEXT(0x00, 0, 12, 128, "Compare Hashes:"),
-	UI_TEXT(0x00, 0, 26, 128, global.signHashContext.partialHashStr),
+	UI_TEXT(0x00, 0, 26, 128, global.signTxnContext.partialHashStr),
 };
 
 // This is a "preprocessor" function that controls which elements of the
