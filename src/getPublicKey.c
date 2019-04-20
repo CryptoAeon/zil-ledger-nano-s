@@ -143,18 +143,12 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
 
             // Prepare the comparison screen, filling in the header and body text.
             os_memmove(ctx->typeStr, "Compare:", 9);
+            uint64_t size = 32;
             if (ctx->genAddr) {
-                P();
-                // The APDU buffer already contains the hex-encoded address, so
-                // copy it directly.
-                os_memmove(ctx->fullStr, G_io_apdu_buffer + 32, 76);
-                ctx->fullStr[76] = '\0';
-            } else {
-                P();
-                // The APDU buffer contains the raw bytes of the public key, so
-                // first we need to convert to a human-readable form.
-                bin2hex(ctx->fullStr, G_io_apdu_buffer, 32);
+                size = 20;
             }
+            P();
+            bin2hex(ctx->fullStr, G_io_apdu_buffer, size);
             os_memmove(ctx->partialStr, ctx->fullStr, 12);
             ctx->partialStr[12] = '\0';
             ctx->displayIndex = 0;
@@ -198,17 +192,19 @@ void handleGetPublicKey(uint8_t p1,
     ctx->genAddr = (p2 == P2_DISPLAY_ADDRESS);
 
     // Prepare the approval screen, filling in the header and body text.
+    int offset = 5;
     if (ctx->genAddr) {
         os_memmove(ctx->typeStr, "Generate Address", 17);
-        os_memmove(ctx->keyStr, "from Key #", 10);
-        int n = bin2dec(ctx->keyStr + 10, ctx->keyIndex);
-        os_memmove(ctx->keyStr + 10 + n, "?", 2);
-    } else {
-        os_memmove(ctx->typeStr, "Generate Public", 16);
-        os_memmove(ctx->keyStr, "Key #", 5);
-        int n = bin2dec(ctx->keyStr + 5, ctx->keyIndex);
-        os_memmove(ctx->keyStr + 5 + n, "?", 2);
+        //offset = 10;
     }
+    else {
+        os_memmove(ctx->typeStr, "Generate Public", 16);
+    }
+
+    os_memmove(ctx->keyStr, "Key #", offset);
+    int n = bin2dec(ctx->keyStr + offset, ctx->keyIndex);
+    os_memmove(ctx->keyStr + offset + n, "?", 2);
+
     UX_DISPLAY(ui_getPublicKey_approve, NULL);
 
     *flags |= IO_ASYNCH_REPLY;
