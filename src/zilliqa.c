@@ -74,20 +74,21 @@ void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {
     PRINTF("digest: %.*H\n", SHA256_HASH_LEN, digest);
 
     // 4. Extract 20 MSBs from the above result
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < PUB_ADDR_BIT_LEN; i++) {
         dst[i] = digest[i];
     }
 }
 
 // TODO move bit manipulation utils to another file
 void extractPubkeyBytes(unsigned char *dst, cx_ecfp_public_key_t *publicKey) {
-    for (int i = 0; i < 32; i++) {
+    int len = publicKey->W_len;
+    for (int i = 0; i < len; i++) {
         dst[i] = publicKey->W[72 - i];
     }
-    if (publicKey->W[32] & 1) {
-        dst[31] |= 0x80;
+    if (publicKey->W[len] & 1) {
+        dst[len - 1] |= 0x80;
     }
-    PRINTF("dst:\n %.*H \n\n", 32, publicKey->W);
+    PRINTF("dst:\n %.*H \n\n", len, publicKey->W);
 }
 
 void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen) {

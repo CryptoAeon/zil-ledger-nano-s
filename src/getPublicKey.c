@@ -44,7 +44,7 @@ static const bagl_element_t ui_getPublicKey_compare[] = {
 // is that, since public keys and addresses have different lengths, checking
 // for the end of the string is slightly more complicated.
 static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t *element) {
-    int fullSize = ctx->genAddr ? 76 : 64;
+    int fullSize = ctx->genAddr ? PUB_ADDR_BIT_LEN : 64;
     if ((element->component.userid == 1 && ctx->displayIndex == 0) ||
         (element->component.userid == 2 && ctx->displayIndex == fullSize - 12)) {
         P();
@@ -57,7 +57,7 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
 // identical to the signHash comparison button handler.
 static unsigned int
 ui_getPublicKey_compare_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    int fullSize = ctx->genAddr ? 76 : 64;
+    int fullSize = ctx->genAddr ? PUB_ADDR_BIT_LEN : 64;
     switch (button_mask) {
         case BUTTON_LEFT:
         case BUTTON_EVT_FAST | BUTTON_LEFT: // SEEK LEFT
@@ -130,13 +130,14 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             // statements later.
 
             // 1. Generate key pair
+
             deriveZilKeyPair(ctx->keyIndex, NULL, &publicKey);
-            extractPubkeyBytes(G_io_apdu_buffer + tx, &publicKey);
-            P();
-            tx += 32;
-            pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
-            P();
-            tx += 20;
+
+            if (ctx->genAddr) {
+                extractPubkeyBytes(G_io_apdu_buffer + tx, &publicKey);
+                pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
+                tx += PUB_ADDR_BIT_LEN;
+            }
 
             // Flush the APDU buffer, sending the response.
             io_exchange_with_code(SW_OK, tx);

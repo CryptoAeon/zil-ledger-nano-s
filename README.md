@@ -2,6 +2,11 @@
   
 Zilliqa wallet application for Nano S.
 
+## Build
+`make clean && make DBG=1 load`
+
+The debug variable should be omitted for production builds.
+
 ## JavaScript Interface
 Located [here](https://github.com/CryptoAeon/zil-ledger-js-interface)
 

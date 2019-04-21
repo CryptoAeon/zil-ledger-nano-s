@@ -45,7 +45,7 @@ all: default
 load: all
 	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 
-delete:
+delete:32
 	python -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
 ############
@@ -54,9 +54,14 @@ delete:
 
 DEFINES += OS_IO_SEPROXYHAL IO_SEPROXYHAL_BUFFER_SIZE_B=256
 DEFINES += HAVE_BAGL
+
+ifdef DBG
 DEFINES += HAVE_SPRINTF
 DEFINES += HAVE_PRINTF PRINTF=screen_printf
-#DEFINES += PRINTF\(...\)=
+else
+DEFINES += PRINTF\(...\)=
+endif
+
 DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=7 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES += APPVERSION=\"$(APPVERSION)\"
 

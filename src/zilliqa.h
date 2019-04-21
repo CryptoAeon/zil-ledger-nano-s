@@ -6,6 +6,7 @@
 
 // Constants
 #define SHA256_HASH_LEN 32
+#define PUB_ADDR_BIT_LEN 40
 
 // exception codes
 #define SW_DEVELOPER_ERR 0x6B00
