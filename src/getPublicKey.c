@@ -44,7 +44,7 @@ static const bagl_element_t ui_getPublicKey_compare[] = {
 // is that, since public keys and addresses have different lengths, checking
 // for the end of the string is slightly more complicated.
 static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t *element) {
-    int fullSize = ctx->genAddr ? PUB_ADDR_BIT_LEN : 64;
+    int fullSize = ctx->genAddr ? PUB_ADDR_BYTES_LEN : 64;
     if ((element->component.userid == 1 && ctx->displayIndex == 0) ||
         (element->component.userid == 2 && ctx->displayIndex == fullSize - 12)) {
         P();
@@ -57,7 +57,7 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
 // identical to the signHash comparison button handler.
 static unsigned int
 ui_getPublicKey_compare_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    int fullSize = ctx->genAddr ? PUB_ADDR_BIT_LEN : 64;
+    int fullSize = ctx->genAddr ? PUB_ADDR_BYTES_LEN : 64;
     switch (button_mask) {
         case BUTTON_LEFT:
         case BUTTON_EVT_FAST | BUTTON_LEFT: // SEEK LEFT
@@ -130,30 +130,35 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             // statements later.
 
             // 1. Generate key pair
-
             deriveZilKeyPair(ctx->keyIndex, NULL, &publicKey);
-
-            if (ctx->genAddr) {
-                extractPubkeyBytes(G_io_apdu_buffer + tx, &publicKey);
-                pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
-                tx += PUB_ADDR_BIT_LEN;
-            }
+            extractPubkeyBytes(G_io_apdu_buffer + tx, &publicKey);
+            tx += 32;
+            pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
+            tx += PUB_ADDR_BYTES_LEN;
 
             // Flush the APDU buffer, sending the response.
+            // Response contains both the public key and the public address.
             io_exchange_with_code(SW_OK, tx);
 
             // Prepare the comparison screen, filling in the header and body text.
             os_memmove(ctx->typeStr, "Compare:", 9);
-            uint64_t size = 32;
+
             if (ctx->genAddr) {
-                size = 20;
+                // The APDU buffer already contains the hex-encoded address, so
+                // copy it directly.
+                os_memmove(ctx->fullStr, G_io_apdu_buffer + 32, PUB_ADDR_BYTES_LEN);
+                ctx->fullStr[PUB_ADDR_BYTES_LEN] = '\0';
             }
-            P();
-            bin2hex(ctx->fullStr, G_io_apdu_buffer, size);
+            else {
+                // The APDU buffer contains the raw bytes of the public key, so
+                // first we need to convert to a human-readable form.
+                bin2hex(ctx->fullStr, G_io_apdu_buffer, 32);
+            }
+
             os_memmove(ctx->partialStr, ctx->fullStr, 12);
             ctx->partialStr[12] = '\0';
             ctx->displayIndex = 0;
-            P();
+
             // Display the comparison screen.
             UX_DISPLAY(ui_getPublicKey_compare, ui_prepro_getPublicKey_compare);
             break;
@@ -163,8 +168,8 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
 
 // These are APDU parameters that control the behavior of the getPublicKey
 // command.
-#define P2_DISPLAY_ADDRESS 0x00
-#define P2_DISPLAY_PUBKEY  0x01
+#define P2_DISPLAY_PUBKEY  0x00
+#define P2_DISPLAY_ADDRESS 0x01
 
 // handleGetPublicKey is the entry point for the getPublicKey command. It
 // reads the command parameters, prepares and displays the approval screen,
@@ -196,7 +201,6 @@ void handleGetPublicKey(uint8_t p1,
     int offset = 5;
     if (ctx->genAddr) {
         os_memmove(ctx->typeStr, "Generate Address", 17);
-        //offset = 10;
     }
     else {
         os_memmove(ctx->typeStr, "Generate Public", 16);

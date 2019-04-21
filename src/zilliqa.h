@@ -7,6 +7,7 @@
 // Constants
 #define SHA256_HASH_LEN 32
 #define PUB_ADDR_BIT_LEN 40
+#define PUB_ADDR_BYTES_LEN 20
 
 // exception codes
 #define SW_DEVELOPER_ERR 0x6B00
@@ -31,7 +32,7 @@ void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen);
 // final NUL byte. It returns the length of the string.
 int bin2dec(uint8_t *dst, uint64_t n);
 
-// extractPubkeyBytes converts a Ledger-style public key to a Zil-friendly
+// extractPubkeyBytes converts a Ledger-style public key (65 length) to a Zil-friendly
 // 32-byte array.
 void extractPubkeyBytes(unsigned char *dst, cx_ecfp_public_key_t *publicKey);
 
