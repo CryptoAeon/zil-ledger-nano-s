@@ -32,7 +32,7 @@ APPVERSION = 0.1.3
 APP_LOAD_PARAMS = --path "44'/313'" --curve secp256k1 $(COMMON_LOAD_PARAMS)
 APP_LOAD_FLAGS  = --appFlags 0x40
 APP_SOURCE_PATH = src
-SDK_SOURCE_PATH = lib_stusb lib_stusb_impl
+SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f
 
 APP_LOAD_PARAMS += $(APP_LOAD_FLAGS)
 
@@ -59,6 +59,15 @@ DEFINES += HAVE_PRINTF PRINTF=screen_printf
 #DEFINES += PRINTF\(...\)=
 DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=7 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES += APPVERSION=\"$(APPVERSION)\"
+
+# U2F
+DEFINES   += HAVE_U2F HAVE_IO_U2F
+DEFINES   += U2F_PROXY_MAGIC=\"w0w\"
+DEFINES   += USB_SEGMENT_SIZE=64
+DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
+
+WEBUSB_URL = www.ledgerwallet.com
+DEFINES    += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
 
 ##############
 #  Compiler  #
