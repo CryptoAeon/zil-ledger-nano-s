@@ -25,17 +25,6 @@
 // Get the seed key for Zilliqa BIP32 path
 uint8_t * getKeySeed(uint32_t index);
 
-// bin2hex converts binary to hex and appends a final NUL byte.
-void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen);
-
-// bin2dec converts an unsigned integer to a decimal string and appends a
-// final NUL byte. It returns the length of the string.
-int bin2dec(uint8_t *dst, uint64_t n);
-
-// extractPubkeyBytes converts a Ledger-style public key (65 length) to a Zil-friendly
-// 32-byte array.
-void extractPubkeyBytes(unsigned char *dst, cx_ecfp_public_key_t *publicKey);
-
 // pubkeyToZilAddress converts a Ledger pubkey to a Zilliqa wallet address.
 void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey);
 
@@ -47,5 +36,20 @@ void deriveZilKeyPair(uint32_t index, cx_ecfp_private_key_t *privateKey, cx_ecfp
 // Ledger seed, and uses it to produce a 72-byte signature of the provided hash.
 // The key is cleared from memory after signing.
 void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned int hashLen);
+
+// BYTE UTILS
+
+// bin2hex converts binary to hex and appends a final NUL byte.
+void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen);
+
+// bin2dec converts an unsigned integer to a decimal string and appends a
+// final NUL byte. It returns the length of the string.
+int bin2dec(uint8_t *dst, uint64_t n);
+
+// extractPubkeyBytes converts a Ledger-style public key (65 length) to a Zil-friendly
+// 32-byte array.
+void extractPubkeyBytes(unsigned char *dst, cx_ecfp_public_key_t *publicKey);
+
+void copyArray(uint8_t *dst, size_t offset, uint8_t *src, size_t length);
 
 #endif

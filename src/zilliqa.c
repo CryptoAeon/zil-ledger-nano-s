@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <os.h>
 #include <cx.h>
+#include "derEncoding.h"
 #include "zilliqa.h"
 
 uint8_t * getKeySeed(uint32_t index) {
@@ -53,19 +54,31 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned i
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
     PRINTF("privateKey: %.*H \n", privateKey.d_len, privateKey.d);
 
+    const uint8_t signature[72];
     unsigned int info = 0;
     cx_ecschnorr_sign(&privateKey,
                       CX_RND_TRNG | CX_ECSCHNORR_Z,
                       CX_SHA256,
                       hash,
                       hashLen,
-                      dst,
+                      signature,
                       72,
                       &info);
-    PRINTF("signature: %.*H\n", 72, dst);
+    PRINTF("signature: %.*H\n", 72, signature);
 
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&privateKey, 0, sizeof(privateKey));
+
+    uint8_t r[32];
+    size_t rLen;
+    uint8_t s[32];
+    size_t sLen;
+    cx_ecfp_decode_sig_der(&signature, 72, 32, &r, &rLen, &s, &sLen);
+    PRINTF("r: %.*H\n", 32, r);
+    PRINTF("s: %.*H\n", 32, s);
+
+    copyArray(dst, 0, r, 32);
+    copyArray(dst, 32, s, 32);
 }
 
 void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {
@@ -120,4 +133,11 @@ int bin2dec(uint8_t *dst, uint64_t n) {
     }
     dst[len] = '\0';
     return len;
+}
+
+void copyArray(uint8_t *dst, size_t offset, uint8_t *src, size_t length)
+{
+    for (size_t i = 0; i < length; ++i) {
+        dst[offset + i] = src[i];
+    }
 }
