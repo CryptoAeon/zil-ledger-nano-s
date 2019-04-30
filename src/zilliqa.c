@@ -21,6 +21,25 @@ uint8_t * getKeySeed(uint32_t index) {
     return keySeed;
 }
 
+void compressPubKey(cx_ecfp_public_key_t *publicKey) {
+    // Uncompressed key has 0x04 + X (32 bytes) + Y (32 bytes).
+    if (publicKey->W_len != 65 || publicKey->W[0] != 0x04) {
+        PRINTF("compressPubKey: Input public key is incorrect\n");
+        return;
+    }
+
+    // check if Y is even or odd. Assuming big-endian, just check the last byte.
+    if (publicKey->W[64] % 2 == 0) {
+        // Even
+        publicKey->W[0] = 0x02;
+    } else {
+        // Odd
+        publicKey->W[0] = 0x03;
+    }
+
+    publicKey->W_len = 33;
+}
+
 void deriveZilKeyPair(uint32_t index,
                       cx_ecfp_private_key_t *privateKey,
                       cx_ecfp_public_key_t *publicKey) {
@@ -38,6 +57,8 @@ void deriveZilKeyPair(uint32_t index,
         *privateKey = pk;
         PRINTF("privateKey:\n %.*H \n\n", pk.d_len, pk.d);
     }
+
+    compressPubKey(publicKey);
 
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&pk, 0, sizeof(pk));
