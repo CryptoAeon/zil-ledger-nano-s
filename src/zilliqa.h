@@ -46,10 +46,6 @@ void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen);
 // final NUL byte. It returns the length of the string.
 int bin2dec(uint8_t *dst, uint64_t n);
 
-// extractPubkeyBytes converts a Ledger-style public key (65 length) to a Zil-friendly
-// 32-byte array.
-void extractPubkeyBytes(unsigned char *dst, cx_ecfp_public_key_t *publicKey);
-
 void copyArray(uint8_t *dst, size_t offset, uint8_t *src, size_t length);
 
 #endif

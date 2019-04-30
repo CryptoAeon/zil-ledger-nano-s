@@ -131,8 +131,8 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
 
             // 1. Generate key pair
             deriveZilKeyPair(ctx->keyIndex, NULL, &publicKey);
-            extractPubkeyBytes(G_io_apdu_buffer + tx, &publicKey);
-            tx += 32;
+            os_memmove(G_io_apdu_buffer + tx, publicKey.W, 65);
+            tx += 65;
             pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
             tx += PUB_ADDR_BYTES_LEN;
 

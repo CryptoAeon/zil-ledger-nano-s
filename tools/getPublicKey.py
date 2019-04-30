@@ -13,23 +13,26 @@ def apduPrefix(args):
     P2 = b"\x01" if args.dispAddr else b"\x00"
     return CLA + INS + P1 + P2
 
+
 def exchange(apdu):
     dongle = getDongle(True)
     return dongle.exchange(apdu)
+
 
 def main(args):
     payload = struct.pack("<I", args.index)
     L_c = bytes([len(payload)])
     apdu = apduPrefix(args) + L_c + payload
     response = exchange(apdu)
-    pubKey =  response[0:32]
-    pubAddr = response[32:]
+    pubKey = response[0:65]
+    pubAddr = response[65:]
     if args.dispAddr:
-        print("Address:" + pubAddr.hex())
+        print("Address:", pubAddr.hex())
         print("length: ", len(pubAddr.hex()))
     else:
-        print("Public Key:" + pubKey.hex())
+        print("Public Key:", pubKey.hex())
         print("length: ", len(pubKey.hex()))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

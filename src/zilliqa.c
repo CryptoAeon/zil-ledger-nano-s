@@ -95,17 +95,6 @@ void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {
     bin2hex(dst, msbs, PUB_ADDR_BYTES_LEN);
 }
 
-// TODO move bit manipulation utils to another file
-void extractPubkeyBytes(unsigned char *dst, cx_ecfp_public_key_t *publicKey) {
-    for (int i = 0; i < 32; i++) {
-        dst[i] = publicKey->W[64 - i];
-    }
-    if (publicKey->W[32] & 1) {
-        dst[31] |= 0x80;
-    }
-    PRINTF("pubKey bytes:\n %.*H \n\n", 32, dst);
-}
-
 void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen) {
     static uint8_t const hex[] = "0123456789abcdef";
     for (uint64_t i = 0; i < inlen; i++) {
