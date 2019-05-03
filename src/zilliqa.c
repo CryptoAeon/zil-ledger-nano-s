@@ -75,17 +75,17 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned i
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
     PRINTF("privateKey: %.*H \n", privateKey.d_len, privateKey.d);
 
-    const uint8_t signature[72];
+    const uint8_t signature[73];
     unsigned int info = 0;
-    cx_ecschnorr_sign(&privateKey,
+    int sig_len = cx_ecschnorr_sign(&privateKey,
                       CX_RND_TRNG | CX_ECSCHNORR_Z,
                       CX_SHA256,
                       hash,
                       hashLen,
                       signature,
-                      72,
+                      73,
                       &info);
-    PRINTF("signature: %.*H\n", 72, signature);
+    PRINTF("signature: %.*H\n", sig_len, signature);
 
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&privateKey, 0, sizeof(privateKey));
@@ -94,7 +94,7 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned i
     size_t rLen;
     uint8_t s[32];
     size_t sLen;
-    cx_ecfp_decode_sig_der(&signature, 72, 32, &r, &rLen, &s, &sLen);
+    cx_ecfp_decode_sig_der(&signature, sig_len, 32, &r, &rLen, &s, &sLen);
     PRINTF("r: %.*H\n", 32, r);
     PRINTF("s: %.*H\n", 32, s);
 

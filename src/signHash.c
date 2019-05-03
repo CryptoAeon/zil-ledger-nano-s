@@ -99,10 +99,8 @@ static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigne
 		// Derive the secret key and sign the hash, storing the signature in
 		// the APDU buffer.
 		deriveAndSign(G_io_apdu_buffer, ctx->keyIndex, ctx->hash, 32);
-		// Send the data in the APDU buffer, along with a special code that
-		// indicates approval. 64 is the number of bytes in the response APDU,
-		// sans response code.
-		io_exchange_with_code(SW_OK, 128);
+		// Send the data in the APDU buffer, which is a 64 byte signature.
+		io_exchange_with_code(SW_OK, 64);
 		// Return to the main screen.
 		ui_idle();
 		break;
