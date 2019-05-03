@@ -108,12 +108,10 @@ void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {
     cx_hash_sha256(publicKey->W, publicKey->W_len, digest, SHA256_HASH_LEN);
     PRINTF("sha256: %.*H\n", SHA256_HASH_LEN, digest);
 
-    // 4. Extract 20 MSBs from the above result
-    uint8_t msbs[PUB_ADDR_BIT_LEN];
-    for (int i = 0; i < PUB_ADDR_BIT_LEN; i++) {
-        msbs[i] = digest[i];
+    // LSB 20 bytes of the hash is our address.
+    for (unsigned i = 0; i < 20; i++) {
+        dst[i] = digest[i+12];
     }
-    bin2hex(dst, msbs, PUB_ADDR_BYTES_LEN);
 }
 
 void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen) {
