@@ -21,6 +21,25 @@ uint8_t * getKeySeed(uint32_t index) {
     return keySeed;
 }
 
+void compressPubKey(cx_ecfp_public_key_t *publicKey) {
+    // Uncompressed key has 0x04 + X (32 bytes) + Y (32 bytes).
+    if (publicKey->W_len != 65 || publicKey->W[0] != 0x04) {
+        PRINTF("compressPubKey: Input public key is incorrect\n");
+        return;
+    }
+
+    // check if Y is even or odd. Assuming big-endian, just check the last byte.
+    if (publicKey->W[64] % 2 == 0) {
+        // Even
+        publicKey->W[0] = 0x02;
+    } else {
+        // Odd
+        publicKey->W[0] = 0x03;
+    }
+
+    publicKey->W_len = 33;
+}
+
 void deriveZilKeyPair(uint32_t index,
                       cx_ecfp_private_key_t *privateKey,
                       cx_ecfp_public_key_t *publicKey) {
@@ -39,6 +58,8 @@ void deriveZilKeyPair(uint32_t index,
         PRINTF("privateKey:\n %.*H \n\n", pk.d_len, pk.d);
     }
 
+    compressPubKey(publicKey);
+
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&pk, 0, sizeof(pk));
     P();
@@ -54,17 +75,17 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned i
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
     PRINTF("privateKey: %.*H \n", privateKey.d_len, privateKey.d);
 
-    const uint8_t signature[72];
+    const uint8_t signature[73];
     unsigned int info = 0;
-    cx_ecschnorr_sign(&privateKey,
+    int sig_len = cx_ecschnorr_sign(&privateKey,
                       CX_RND_TRNG | CX_ECSCHNORR_Z,
                       CX_SHA256,
                       hash,
                       hashLen,
                       signature,
-                      72,
+                      73,
                       &info);
-    PRINTF("signature: %.*H\n", 72, signature);
+    PRINTF("signature: %.*H\n", sig_len, signature);
 
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&privateKey, 0, sizeof(privateKey));
@@ -73,7 +94,7 @@ void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned i
     size_t rLen;
     uint8_t s[32];
     size_t sLen;
-    cx_ecfp_decode_sig_der(&signature, 72, 32, &r, &rLen, &s, &sLen);
+    cx_ecfp_decode_sig_der(&signature, sig_len, 32, &r, &rLen, &s, &sLen);
     PRINTF("r: %.*H\n", 32, r);
     PRINTF("s: %.*H\n", 32, s);
 
@@ -87,12 +108,10 @@ void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {
     cx_hash_sha256(publicKey->W, publicKey->W_len, digest, SHA256_HASH_LEN);
     PRINTF("sha256: %.*H\n", SHA256_HASH_LEN, digest);
 
-    // 4. Extract 20 MSBs from the above result
-    uint8_t msbs[PUB_ADDR_BIT_LEN];
-    for (int i = 0; i < PUB_ADDR_BIT_LEN; i++) {
-        msbs[i] = digest[i];
+    // LSB 20 bytes of the hash is our address.
+    for (unsigned i = 0; i < 20; i++) {
+        dst[i] = digest[i+12];
     }
-    bin2hex(dst, msbs, PUB_ADDR_BYTES_LEN);
 }
 
 void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen) {

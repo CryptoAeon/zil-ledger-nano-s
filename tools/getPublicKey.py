@@ -24,8 +24,8 @@ def main(args):
     L_c = bytes([len(payload)])
     apdu = apduPrefix(args) + L_c + payload
     response = exchange(apdu)
-    pubKey = response[0:65]
-    pubAddr = response[65:]
+    pubKey = response[0:33]
+    pubAddr = response[33:]
     if args.dispAddr:
         print("Address:", pubAddr.hex())
         print("length: ", len(pubAddr.hex()))

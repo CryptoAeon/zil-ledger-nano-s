@@ -25,6 +25,9 @@
 // Get the seed key for Zilliqa BIP32 path
 uint8_t * getKeySeed(uint32_t index);
 
+// Convert un-compressed zilliqa public key to a compressed form.
+void compressPubKey(cx_ecfp_public_key_t *publicKey);
+
 // pubkeyToZilAddress converts a Ledger pubkey to a Zilliqa wallet address.
 void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey);
 
@@ -46,6 +49,7 @@ void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen);
 // final NUL byte. It returns the length of the string.
 int bin2dec(uint8_t *dst, uint64_t n);
 
+// Copy length bytes from offset to memory starting at dst+offset
 void copyArray(uint8_t *dst, size_t offset, uint8_t *src, size_t length);
 
 #endif
