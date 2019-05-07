@@ -25,7 +25,7 @@ void compressPubKey(cx_ecfp_public_key_t *publicKey) {
     // Uncompressed key has 0x04 + X (32 bytes) + Y (32 bytes).
     if (publicKey->W_len != 65 || publicKey->W[0] != 0x04) {
         PRINTF("compressPubKey: Input public key is incorrect\n");
-        return;
+        THROW(SW_INVALID_PARAM);
     }
 
     // check if Y is even or odd. Assuming big-endian, just check the last byte.
@@ -140,8 +140,7 @@ static uint8_t hexchar2bin (unsigned char c) {
         case 'e': case 'E': return 0xe;
         case 'f': case 'F': return 0xf;
     default:
-        // TODO: Throw error.
-        return 0x0;
+        THROW(SW_INVALID_PARAM);
     }
 }
 
@@ -150,8 +149,7 @@ static uint8_t hexchar2bin (unsigned char c) {
 // with at least numhexchar/2 bytes already).
 void hex2bin(uint8_t *hexstr, unsigned numhexchars, uint8_t *bin) {
     if (numhexchars % 2 != 0 || numhexchars == 0)
-        // TODO: Throw error.                                                                                                                                                                                      
-        return;
+        THROW(SW_INVALID_PARAM);
 
     unsigned hexstr_start = 0;
     if (hexstr[0] == '0' && (hexstr[1] == 'x' || hexstr[1] == 'X')) {
