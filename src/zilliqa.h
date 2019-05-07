@@ -38,7 +38,7 @@ void deriveZilKeyPair(uint32_t index, cx_ecfp_private_key_t *privateKey, cx_ecfp
 // deriveAndSign derives an ECFP private key from an user specified index and the
 // Ledger seed, and uses it to produce a 72-byte signature of the provided hash.
 // The key is cleared from memory after signing.
-void deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned int hashLen);
+int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned int hashLen);
 
 // BYTE UTILS
 
@@ -48,6 +48,11 @@ void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen);
 // bin2dec converts an unsigned integer to a decimal string and appends a
 // final NUL byte. It returns the length of the string.
 int bin2dec(uint8_t *dst, uint64_t n);
+
+// Given a hex string with numhexchar characters, convert it
+// to byte sequence and place in "bin" (which must be allocated
+// with at least numhexchar/2 bytes already).
+void hex2bin(uint8_t *hexstr, unsigned numhexchars, uint8_t *bin);
 
 // Copy length bytes from offset to memory starting at dst+offset
 void copyArray(uint8_t *dst, size_t offset, uint8_t *src, size_t length);

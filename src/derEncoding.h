@@ -49,3 +49,6 @@ int cx_ecfp_decode_sig_der(const uint8_t *input,
                            size_t *r_len,
                            uint8_t **s,
                            size_t *s_len);
+
+// src must hold a valid DER encoded signature and dest must be allocated exactly 64 bytes.
+int cx_ecfp_decode_sig_der_zilliqa (uint8_t *src, uint8_t *dest);

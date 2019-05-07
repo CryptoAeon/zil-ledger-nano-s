@@ -185,3 +185,39 @@ int cx_ecfp_decode_sig_der(const uint8_t *input, size_t input_len,
     end:
     return ret;
 }
+
+// src must hold a valid DER encoded signature and dest must be allocated exactly 64 bytes.
+int cx_ecfp_decode_sig_der_zilliqa (uint8_t *src, uint8_t *dest) {
+
+    int sig_len, r_offset, r_len, s_offset, s_len; 
+
+    // clear dest.
+    os_memset(dest, 0, 64);
+
+    sig_len  = src[1]+2;
+    r_offset = 4;
+    r_len    = src[3];
+    s_offset = 4+r_len+2;
+    s_len    = src[4+r_len+1];
+    if (src[0]  != 0x30 ||
+        sig_len != r_len+s_len+6 ||
+        src[r_offset-2] != 0x02  || 
+        src[s_offset-2] != 0x02  )
+        // TODO: Throw error
+        return 1;
+
+    //TODO Double check this condition
+    if(src[r_offset] == 0x00 && src[r_offset+1] >= 0x8d)
+        memcpy(dest, src+r_offset+1, r_len-1);
+    else
+        memcpy(dest, src+r_offset, r_len);
+
+    
+    //TODO Double check this condition
+    if(src[s_offset] == 0x00 && src[s_offset+1] >= 0x8d)
+        memcpy(dest+32, src+s_offset+1, s_len-1);
+    else
+        memcpy(dest+32, src+s_offset, s_len);
+   
+    return 0;
+}
