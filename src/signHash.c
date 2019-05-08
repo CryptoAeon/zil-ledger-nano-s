@@ -85,6 +85,7 @@ static const bagl_element_t ui_signHash_approve[] = {
 // any apps that use this counter, but it could be useful for e.g. performing
 // an action only if a button is held for 3 seconds.
 static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigned int button_mask_counter) {
+	int sig_len;
 	switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_LEFT: // REJECT
 		// Send an error code to the computer. The application on the computer
@@ -98,9 +99,9 @@ static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigne
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT: // APPROVE
 		// Derive the secret key and sign the hash, storing the signature in
 		// the APDU buffer.
-		deriveAndSign(G_io_apdu_buffer, ctx->keyIndex, ctx->hash, 32);
+		sig_len = deriveAndSign(G_io_apdu_buffer, ctx->keyIndex, ctx->hash, 32);
 		// Send the data in the APDU buffer, which is a 64 byte signature.
-		io_exchange_with_code(SW_OK, 64);
+		io_exchange_with_code(SW_OK, sig_len);
 		// Return to the main screen.
 		ui_idle();
 		break;

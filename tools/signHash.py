@@ -19,7 +19,7 @@ def main(args):
     sig = args.signature
     if len(sig) > 64:
         sig = sig[:64]
-    sigBytes = bytes(sig, "utf-8")
+    sigBytes = bytes.fromhex(sig)
 
     prefix = apduPrefix()
     payload = indexBytes + sigBytes
