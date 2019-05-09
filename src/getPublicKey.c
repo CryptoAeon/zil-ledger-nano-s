@@ -57,7 +57,7 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
 // identical to the signHash comparison button handler.
 static unsigned int
 ui_getPublicKey_compare_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    int fullSize = ctx->genAddr ? PUB_ADDR_BYTES_LEN : 64;
+    int fullSize = ctx->genAddr ? (PUB_ADDR_BYTES_LEN *2) : (PUBLIC_KEY_BYTES_LEN * 2);
     switch (button_mask) {
         case BUTTON_LEFT:
         case BUTTON_EVT_FAST | BUTTON_LEFT: // SEEK LEFT
@@ -143,16 +143,13 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             // Prepare the comparison screen, filling in the header and body text.
             os_memmove(ctx->typeStr, "Compare:", 9);
 
+            // The APDU buffer contains the raw bytes of the public key and address.
+            // So, first we need to convert to a human-readable form.
             if (ctx->genAddr) {
-                // The APDU buffer already contains the hex-encoded address, so
-                // copy it directly.
-                os_memmove(ctx->fullStr, G_io_apdu_buffer + 32, PUB_ADDR_BYTES_LEN);
-                ctx->fullStr[PUB_ADDR_BYTES_LEN] = '\0';
+                bin2hex(ctx->fullStr, G_io_apdu_buffer + publicKey.W_len, PUB_ADDR_BYTES_LEN);
             }
             else {
-                // The APDU buffer contains the raw bytes of the public key, so
-                // first we need to convert to a human-readable form.
-                bin2hex(ctx->fullStr, G_io_apdu_buffer, 32);
+                bin2hex(ctx->fullStr, G_io_apdu_buffer, publicKey.W_len);
             }
 
             os_memmove(ctx->partialStr, ctx->fullStr, 12);

@@ -37,7 +37,7 @@ void compressPubKey(cx_ecfp_public_key_t *publicKey) {
         publicKey->W[0] = 0x03;
     }
 
-    publicKey->W_len = 33;
+    publicKey->W_len = PUBLIC_KEY_BYTES_LEN;
 }
 
 void deriveZilKeyPair(uint32_t index,
