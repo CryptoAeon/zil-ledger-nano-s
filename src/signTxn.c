@@ -38,6 +38,8 @@ static const bagl_element_t ui_signHash_approve[] = {
 };
 
 static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigned int button_mask_counter) {
+	int sig_len;
+
 	switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_LEFT: // REJECT
 		// Send an error code to the computer. The application on the computer
@@ -51,11 +53,11 @@ static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigne
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT: // APPROVE
 		// Derive the secret key and sign the hash, storing the signature in
 		// the APDU buffer.
-		deriveAndSign(G_io_apdu_buffer, ctx->keyIndex, ctx->msg, ctx->msgLen);
+		sig_len = deriveAndSign(G_io_apdu_buffer, ctx->keyIndex, ctx->msg, ctx->msgLen);
 		// Send the data in the APDU buffer, along with a special code that
 		// indicates approval. 64 is the number of bytes in the response APDU,
 		// sans response code.
-		io_exchange_with_code(SW_OK, 128);
+		io_exchange_with_code(SW_OK, sig_len);
 		// Return to the main screen.
 		ui_idle();
 		break;
