@@ -44,7 +44,7 @@ static const bagl_element_t ui_getPublicKey_compare[] = {
 // is that, since public keys and addresses have different lengths, checking
 // for the end of the string is slightly more complicated.
 static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t *element) {
-    int fullSize = ctx->genAddr ? PUB_ADDR_BYTES_LEN : 64;
+    int fullSize = ctx->genAddr ? (PUB_ADDR_BYTES_LEN * 2) : (PUBLIC_KEY_BYTES_LEN * 2);
     if ((element->component.userid == 1 && ctx->displayIndex == 0) ||
         (element->component.userid == 2 && ctx->displayIndex == fullSize - 12)) {
         P();
@@ -57,7 +57,7 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
 // identical to the signHash comparison button handler.
 static unsigned int
 ui_getPublicKey_compare_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    int fullSize = ctx->genAddr ? (PUB_ADDR_BYTES_LEN *2) : (PUBLIC_KEY_BYTES_LEN * 2);
+    int fullSize = ctx->genAddr ? (PUB_ADDR_BYTES_LEN * 2) : (PUBLIC_KEY_BYTES_LEN * 2);
     switch (button_mask) {
         case BUTTON_LEFT:
         case BUTTON_EVT_FAST | BUTTON_LEFT: // SEEK LEFT
