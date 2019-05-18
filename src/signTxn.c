@@ -111,7 +111,7 @@ static const bagl_element_t* ui_prepro_signHash_compare(const bagl_element_t *el
 		return (ctx->displayIndex == 0) ? NULL : element;
 	case 2:
 		// 0x02 is the right, so return NULL if we're displaying the end of the text.
-		return (ctx->displayIndex == sizeof(ctx->hexMsg) - 12) ? NULL : element;
+		return (ctx->displayIndex == ctx->hexMsgLen - 12) ? NULL : element;
 	default:
 		// Always display all other elements.
 		return element;
@@ -153,7 +153,7 @@ static unsigned int ui_signHash_compare_button(unsigned int button_mask, unsigne
 
 	case BUTTON_RIGHT:
 	case BUTTON_EVT_FAST | BUTTON_RIGHT: // SEEK RIGHT
-		if (ctx->displayIndex < sizeof(ctx->hexMsg)-12) {
+		if (ctx->displayIndex < ctx->hexMsgLen-12) {
 			ctx->displayIndex++;
 		}
 		os_memmove(ctx->partialHashStr, ctx->hexMsg + ctx->displayIndex, 12);
@@ -191,6 +191,7 @@ void handleSignTxn(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLen
 	// Prepare to display the comparison screen by converting the hash to hex
 	// and moving the first 12 characters into the partialHashStr buffer.
 	bin2hex(ctx->hexMsg, ctx->msg, ctx->msgLen);
+	ctx->hexMsgLen = ctx->msgLen * 2;
 	os_memmove(ctx->partialHashStr, ctx->hexMsg, 12);
 	ctx->partialHashStr[12] = '\0';
 	ctx->displayIndex = 0;

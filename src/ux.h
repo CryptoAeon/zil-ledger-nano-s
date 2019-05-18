@@ -31,6 +31,7 @@ typedef struct {
 
 	// Used for display
 	uint8_t hexMsg[512];
+	unsigned int hexMsgLen;
 	uint32_t displayIndex;
 	uint8_t indexStr[40]; // variable-length
 	uint8_t partialHashStr[13];
