@@ -98,7 +98,13 @@ int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned in
 #else
     uint8_t *r, *s;
     size_t r_len, s_len;
-    cx_ecfp_decode_sig_der(signature, sig_len, 32, &r, &r_len, &s, &s_len);
+    if (!cx_ecfp_decode_sig_der(signature, sig_len, 32, &r, &r_len, &s, &s_len)
+        || r_len != 32 || s_len != 32)
+    {
+        PRINTF("Error in DER decoding after Schnorr signing");
+        THROW(SW_DEVELOPER_ERR);
+    }
+
     copyArray(dst, 0, r, 32);
     copyArray(dst, 32, s, 32);
 #endif // DER_DECODE_ZILLIQS
