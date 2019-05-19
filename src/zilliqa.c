@@ -75,7 +75,7 @@ int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned in
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
     PRINTF("privateKey: %.*H \n", privateKey.d_len, privateKey.d);
 
-    const uint8_t signature[73];
+    uint8_t signature[73];
     unsigned int info = 0;
     int sig_len = cx_ecschnorr_sign(&privateKey,
                       CX_RND_TRNG | CX_ECSCHNORR_Z,
@@ -90,11 +90,18 @@ int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned in
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&privateKey, 0, sizeof(privateKey));
 
+#if DER_DECODE_ZILLIQA
     uint8_t rs[64];
     cx_ecfp_decode_sig_der_zilliqa(signature, rs);
     PRINTF("(r,s) signature: %.*H\n", 64, rs);
-
     copyArray(dst, 0, rs, 64);
+#else
+    uint8_t *r, *s;
+    size_t r_len, s_len;
+    cx_ecfp_decode_sig_der(signature, sig_len, 32, &r, &r_len, &s, &s_len);
+    copyArray(dst, 0, r, 32);
+    copyArray(dst, 32, s, 32);
+#endif // DER_DECODE_ZILLIQS
 
     return 64;
 }

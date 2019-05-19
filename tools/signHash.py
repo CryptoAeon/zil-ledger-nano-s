@@ -16,13 +16,13 @@ def apduPrefix():
 def main(args):
     indexBytes = struct.pack("<I", args.index)
 
-    sig = args.signature
-    if len(sig) > 64:
-        sig = sig[:64]
-    sigBytes = bytes.fromhex(sig)
+    mhash = args.mhash
+    if len(mhash) > 64:
+        mhash = mhash[:64]
+    hashBytes = bytes.fromhex(mhash)
 
     prefix = apduPrefix()
-    payload = indexBytes + sigBytes
+    payload = indexBytes + hashBytes
     L_c = bytes([len(payload)])
     apdu = prefix + L_c + payload
 
@@ -35,7 +35,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--signature', '-s', type=str, required=True)
+    parser.add_argument('--mhash', '-m', type=str, required=True)
     parser.add_argument('--index', '-i', type=int, required=True)
     args = parser.parse_args()
     main(args)

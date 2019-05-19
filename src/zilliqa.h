@@ -1,6 +1,10 @@
 #ifndef ZIL_NANOS_ZILLIQA_H
 #define ZIL_NANOS_ZILLIQA_H
 
+// Use Zilliqa's DER decode function for signing?
+// (this shouldn't have any functional impact).
+#define DER_DECODE_ZILLIQA 0
+
 // MACROS
 #define P() PRINTF("\n%s - %s:%d \n", __FILE__, __func__, __LINE__);
 

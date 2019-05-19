@@ -36,11 +36,6 @@ int cx_ecfp_encode_sig_der(unsigned char *sig,
 /* ----------------------------------------------------------------------- */
 /*                                                                         */
 /* ----------------------------------------------------------------------- */
-static int asn1_read_len(uint8_t **p, const uint8_t *end, size_t *len);
-
-static int asn1_read_tag(uint8_t **p, const uint8_t *end, size_t *len, int tag);
-
-static int asn1_parse_integer(uint8_t **p, const uint8_t *end, uint8_t **n, size_t *n_len);
 
 int cx_ecfp_decode_sig_der(const uint8_t *input,
                            size_t input_len,

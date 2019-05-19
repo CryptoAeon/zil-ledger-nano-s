@@ -31,10 +31,10 @@ int cx_ecfp_encode_sig_der(unsigned char* sig, unsigned int sig_len,
     offset = 2;
     if (*r&0x80) {
         sig[offset+2] = 0;
-        memmove(sig+offset+3, r, r_len);
+        os_memmove(sig+offset+3, r, r_len);
         r_len++;
     } else {
-        memmove(sig+offset+2, r, r_len);
+        os_memmove(sig+offset+2, r, r_len);
     }
     sig[offset] = 0x02;
     sig[offset+1] = r_len;
@@ -43,10 +43,10 @@ int cx_ecfp_encode_sig_der(unsigned char* sig, unsigned int sig_len,
     offset += 2+r_len;
     if (*s&0x80) {
         sig[offset+2] = 0;
-        memmove(sig+offset+3, s, s_len);
+        os_memmove(sig+offset+3, s, s_len);
         s_len++;
     } else {
-        memmove(sig+offset+2, s, s_len);
+        os_memmove(sig+offset+2, s, s_len);
     }
     sig[offset] = 0x02;
     sig[offset+1] = s_len;
@@ -208,16 +208,16 @@ int cx_ecfp_decode_sig_der_zilliqa (uint8_t *src, uint8_t *dest) {
 
     //TODO Double check this condition
     if(src[r_offset] == 0x00 && src[r_offset+1] >= 0x8d)
-        memcpy(dest, src+r_offset+1, r_len-1);
+        os_memcpy(dest, src+r_offset+1, r_len-1);
     else
-        memcpy(dest, src+r_offset, r_len);
+        os_memcpy(dest, src+r_offset, r_len);
 
     
     //TODO Double check this condition
     if(src[s_offset] == 0x00 && src[s_offset+1] >= 0x8d)
-        memcpy(dest+32, src+s_offset+1, s_len-1);
+        os_memcpy(dest+32, src+s_offset+1, s_len-1);
     else
-        memcpy(dest+32, src+s_offset, s_len);
+        os_memcpy(dest+32, src+s_offset, s_len);
    
     return 0;
 }
