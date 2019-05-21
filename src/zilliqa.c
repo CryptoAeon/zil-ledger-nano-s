@@ -94,19 +94,21 @@ int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned in
     uint8_t rs[64];
     cx_ecfp_decode_sig_der_zilliqa(signature, rs);
     PRINTF("(r,s) signature: %.*H\n", 64, rs);
-    copyArray(dst, 0, rs, 64);
+    os_memcpy(dst, rs, 64);
 #else
     uint8_t *r, *s;
     size_t r_len, s_len;
     if (!cx_ecfp_decode_sig_der(signature, sig_len, 32, &r, &r_len, &s, &s_len)
-        || r_len != 32 || s_len != 32)
+        || r_len > 32 || s_len > 32)
     {
         PRINTF("Error in DER decoding after Schnorr signing");
         THROW(SW_DEVELOPER_ERR);
     }
-
-    copyArray(dst, 0, r, 32);
-    copyArray(dst, 32, s, 32);
+    // Pad r,s returned with 32-len bytes.
+    os_memset(dst, 0, 32-r_len);
+    os_memcpy(dst+(32-r_len), r, r_len);
+    os_memset(dst+32, 0, 32-s_len);
+    os_memcpy(dst+32+(32-s_len), s, s_len);
 #endif // DER_DECODE_ZILLIQS
 
     return 64;
@@ -195,11 +197,4 @@ int bin2dec(uint8_t *dst, uint64_t n) {
     }
     dst[len] = '\0';
     return len;
-}
-
-void copyArray(uint8_t *dst, size_t offset, uint8_t *src, size_t length)
-{
-    for (size_t i = 0; i < length; ++i) {
-        dst[offset + i] = src[i];
-    }
 }

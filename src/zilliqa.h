@@ -58,7 +58,4 @@ int bin2dec(uint8_t *dst, uint64_t n);
 // with at least numhexchar/2 bytes already).
 void hex2bin(uint8_t *hexstr, unsigned numhexchars, uint8_t *bin);
 
-// Copy length bytes from offset to memory starting at dst+offset
-void copyArray(uint8_t *dst, size_t offset, uint8_t *src, size_t length);
-
 #endif
