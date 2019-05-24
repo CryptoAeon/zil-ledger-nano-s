@@ -198,3 +198,45 @@ int bin2dec(uint8_t *dst, uint64_t n) {
     dst[len] = '\0';
     return len;
 }
+
+// https://stackoverflow.com/a/32567419/2128804
+int strncmp( const char * s1, const char * s2, size_t n )
+{
+    while ( n && *s1 && ( *s1 == *s2 ) ) {
+        ++s1;
+        ++s2;
+        --n;
+    }
+    if ( n == 0 ) {
+        return 0;
+    } else {
+        return ( *(unsigned char *)s1 - *(unsigned char *)s2 );
+    }
+}
+
+// https://stackoverflow.com/a/1733294/2128804
+size_t strlen(const char *str)
+{
+    const char *s;
+
+    for (s = str; *s; ++s)
+      ;
+    return (s - str);
+}
+
+// copy a c-string (including the terminating '\0'.
+char *strcpy(char *dst, const char *src)
+{
+    unsigned i = 0;
+    if (src == NULL) {
+        dst[i] = '\0';
+        return dst;
+    }
+
+    while (src[i] != '\0') {
+        dst[i] = src[i];
+        i++;
+    }
+    dst[i] = '\0';
+    return dst;
+}

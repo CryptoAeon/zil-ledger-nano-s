@@ -12,6 +12,8 @@
 #define SHA256_HASH_LEN 32
 #define PUB_ADDR_BYTES_LEN 20
 #define PUBLIC_KEY_BYTES_LEN 33
+// https://github.com/Zilliqa/Zilliqa/wiki/Address-Standard#specification
+#define BECH32_ADDRSTR_LEN (3 + 1 + 32 + 6)
 
 // exception codes
 #define SW_DEVELOPER_ERR 0x6B00
@@ -57,5 +59,13 @@ int bin2dec(uint8_t *dst, uint64_t n);
 // to byte sequence and place in "bin" (which must be allocated
 // with at least numhexchar/2 bytes already).
 void hex2bin(uint8_t *hexstr, unsigned numhexchars, uint8_t *bin);
+
+// Equivalent to what is there in stdlib.
+int strncmp( const char * s1, const char * s2, size_t n );
+// Equivalent to what is there in stdlib.
+size_t strlen(const char *str);
+// Equivalent to what is there in stdlib.
+char* strcpy(char *dst, const char *src);
+
 
 #endif

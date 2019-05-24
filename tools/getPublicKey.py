@@ -27,8 +27,8 @@ def main(args):
     pubKey = response[0:33]
     pubAddr = response[33:]
     if args.dispAddr:
-        print("Address:", pubAddr.hex())
-        print("length: ", len(pubAddr.hex()))
+        print("Address:", str(pubAddr, 'utf-8'))
+        print("length: ", len(pubAddr))
     else:
         print("Public Key:", pubKey.hex())
         print("length: ", len(pubKey.hex()))

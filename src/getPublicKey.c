@@ -24,6 +24,7 @@
 #include <os_io_seproxyhal.h>
 #include "zilliqa.h"
 #include "ux.h"
+#include "bech32_addr.h"
 
 // Get a pointer to getPublicKey's state variables.
 static getPublicKeyContext_t *ctx = &global.getPublicKeyContext;
@@ -44,7 +45,7 @@ static const bagl_element_t ui_getPublicKey_compare[] = {
 // is that, since public keys and addresses have different lengths, checking
 // for the end of the string is slightly more complicated.
 static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t *element) {
-    int fullSize = ctx->genAddr ? (PUB_ADDR_BYTES_LEN * 2) : (PUBLIC_KEY_BYTES_LEN * 2);
+    int fullSize = ctx->genAddr ? BECH32_ADDRSTR_LEN : (PUBLIC_KEY_BYTES_LEN * 2);
     if ((element->component.userid == 1 && ctx->displayIndex == 0) ||
         (element->component.userid == 2 && ctx->displayIndex == fullSize - 12)) {
         P();
@@ -57,7 +58,7 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
 // identical to the signHash comparison button handler.
 static unsigned int
 ui_getPublicKey_compare_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    int fullSize = ctx->genAddr ? (PUB_ADDR_BYTES_LEN * 2) : (PUBLIC_KEY_BYTES_LEN * 2);
+    int fullSize = ctx->genAddr ? BECH32_ADDRSTR_LEN : (PUBLIC_KEY_BYTES_LEN * 2);
     switch (button_mask) {
         case BUTTON_LEFT:
         case BUTTON_EVT_FAST | BUTTON_LEFT: // SEEK LEFT
@@ -133,8 +134,16 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             deriveZilKeyPair(ctx->keyIndex, NULL, &publicKey);
             os_memmove(G_io_apdu_buffer + tx, publicKey.W, publicKey.W_len);
             tx += publicKey.W_len;
-            pubkeyToZilAddress(G_io_apdu_buffer + tx, &publicKey);
-            tx += PUB_ADDR_BYTES_LEN;
+            // 2. Generate address from public key.
+            uint8_t bytesAddr[PUB_ADDR_BYTES_LEN];
+            pubkeyToZilAddress(bytesAddr, &publicKey);
+            // We have the address bytes, convert that to a null-terminated bech32 string.
+            // 73 is the max size needed, as per bech32_addr_encode spec. 3 more for "zil".
+            char bech32Str[73+3];
+            bech32_addr_encode(bech32Str, "zil", bytesAddr, PUB_ADDR_BYTES_LEN);
+            // Copy over the bech32 string to the apdu buffer for exchange.
+            os_memcpy(G_io_apdu_buffer + tx, bech32Str, BECH32_ADDRSTR_LEN);
+            tx += BECH32_ADDRSTR_LEN;
 
             // Flush the APDU buffer, sending the response.
             // Response contains both the public key and the public address.
@@ -143,12 +152,12 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             // Prepare the comparison screen, filling in the header and body text.
             os_memmove(ctx->typeStr, "Compare:", 9);
 
-            // The APDU buffer contains the raw bytes of the public key and address.
-            // So, first we need to convert to a human-readable form.
             if (ctx->genAddr) {
-                bin2hex(ctx->fullStr, G_io_apdu_buffer + publicKey.W_len, PUB_ADDR_BYTES_LEN);
-            }
-            else {
+                // The APDU buffer contains printable bech32 string.
+                os_memcpy(ctx->fullStr, G_io_apdu_buffer + publicKey.W_len, BECH32_ADDRSTR_LEN);
+            } else {
+                // The APDU buffer contains the raw bytes of the public key.
+                // So, first we need to convert to a human-readable form.
                 bin2hex(ctx->fullStr, G_io_apdu_buffer, publicKey.W_len);
             }
 
