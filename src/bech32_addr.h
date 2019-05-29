@@ -120,4 +120,23 @@ int bech32_addr_encode(
     size_t prog_len
 );
 
+/** Decode a bech32 address. Same as segwit_addr_decode, but does not deal
+ *  with a version, and hence expects no version to be part of the input.
+ *
+ *  Out: prog:     Pointer to a buffer of size 40 that will be updated to
+ *                 contain the witness program bytes.
+ *       prog_len: Pointer to a size_t that will be updated to contain the length
+ *                 of bytes in prog.
+ *       hrp:      Pointer to the null-terminated human readable part that is
+ *                 expected (chain/network specific).
+ *       addr:     Pointer to the null-terminated address.
+ *  Returns 1 if successful.
+ */
+int bech32_addr_decode(
+    uint8_t* prog,
+    size_t* prog_len,
+    const char* hrp,
+    const char* addr
+);
+
 #endif // _BECH32_ADDR_H

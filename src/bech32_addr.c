@@ -202,3 +202,16 @@ int segwit_addr_decode(int* witver, uint8_t* witdata, size_t* witdata_len, const
     *witver = data[0];
     return 1;
 }
+
+int bech32_addr_decode(uint8_t* witdata, size_t* witdata_len, const char* hrp, const char* addr) {
+  uint8_t data[84] = {};
+  char hrp_actual[84] = {};
+    size_t data_len;
+    if (!bech32_decode(hrp_actual, data, &data_len, addr)) return 0;
+    if (data_len == 0 || data_len > 64) return 0;
+    if (strncmp(hrp, hrp_actual, 84) != 0) return 0;
+    *witdata_len = 0;
+    if (!convert_bits(witdata, witdata_len, 8, data, data_len, 5, 0)) return 0;
+    if (*witdata_len != 20) return 0;
+    return 1;
+}
