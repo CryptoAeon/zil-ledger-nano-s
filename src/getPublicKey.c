@@ -130,8 +130,8 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             // always add it explicitly; this prevents a bug if we reorder the
             // statements later.
 
-            // 1. Generate key pair
-            deriveZilKeyPair(ctx->keyIndex, NULL, &publicKey);
+            // 1. Generate public key
+            deriveZilPubKey(ctx->keyIndex, &publicKey);
             os_memmove(G_io_apdu_buffer + tx, publicKey.W, publicKey.W_len);
             tx += publicKey.W_len;
             // 2. Generate address from public key.
@@ -158,7 +158,7 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             } else {
                 // The APDU buffer contains the raw bytes of the public key.
                 // So, first we need to convert to a human-readable form.
-                bin2hex(ctx->fullStr, G_io_apdu_buffer, publicKey.W_len);
+                bin2hex(ctx->fullStr, sizeof(ctx->fullStr), G_io_apdu_buffer, publicKey.W_len);
             }
 
             os_memmove(ctx->partialStr, ctx->fullStr, 12);

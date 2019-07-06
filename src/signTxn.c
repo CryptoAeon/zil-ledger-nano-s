@@ -186,11 +186,13 @@ void handleSignTxn(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLen
 	ctx->msgLen = U4LE(dataBuffer, 4);
     PRINTF("ctx->msgLen: %d \n", ctx->msgLen);
 	// Read the hash.
+	if (ctx->msgLen > sizeof(ctx->msg))
+		THROW(SW_INVALID_PARAM);
 	os_memmove(ctx->msg, dataBuffer+8, ctx->msgLen);
 
 	// Prepare to display the comparison screen by converting the hash to hex
 	// and moving the first 12 characters into the partialHashStr buffer.
-	bin2hex(ctx->hexMsg, ctx->msg, ctx->msgLen);
+	bin2hex(ctx->hexMsg, sizeof(ctx->hexMsg), ctx->msg, ctx->msgLen);
 	ctx->hexMsgLen = ctx->msgLen * 2;
 	os_memmove(ctx->partialHashStr, ctx->hexMsg, 12);
 	ctx->partialHashStr[12] = '\0';

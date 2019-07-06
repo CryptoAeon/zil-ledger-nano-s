@@ -234,7 +234,7 @@ void handleSignHash(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLe
 
 	// Prepare to display the comparison screen by converting the hash to hex
 	// and moving the first 12 characters into the partialHashStr buffer.
-	bin2hex(ctx->hexHash, ctx->hash, sizeof(ctx->hash));
+	bin2hex(ctx->hexHash, sizeof(ctx->hexHash), ctx->hash, sizeof(ctx->hash));
 	os_memmove(ctx->partialHashStr, ctx->hexHash, 12);
 	ctx->partialHashStr[12] = '\0';
 	ctx->displayIndex = 0;

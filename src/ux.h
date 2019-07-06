@@ -17,7 +17,7 @@ typedef struct {
 typedef struct {
 	uint32_t keyIndex;
 	uint8_t hash[32];
-	uint8_t hexHash[64];
+	uint8_t hexHash[65]; // 2*sizeof(hash) + 1 for '\0'
 	uint8_t displayIndex;
 	// NUL-terminated strings for display
 	uint8_t indexStr[40]; // variable-length
@@ -30,7 +30,7 @@ typedef struct {
 	unsigned int msgLen;
 
 	// Used for display
-	uint8_t hexMsg[512];
+	uint8_t hexMsg[513]; // 2*sizeof(msg) + 1 for '\0'.
 	unsigned int hexMsgLen;
 	uint32_t displayIndex;
 	uint8_t indexStr[40]; // variable-length

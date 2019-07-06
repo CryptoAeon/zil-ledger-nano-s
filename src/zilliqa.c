@@ -40,8 +40,7 @@ void compressPubKey(cx_ecfp_public_key_t *publicKey) {
     publicKey->W_len = PUBLIC_KEY_BYTES_LEN;
 }
 
-void deriveZilKeyPair(uint32_t index,
-                      cx_ecfp_private_key_t *privateKey,
+void deriveZilPubKey(uint32_t index,
                       cx_ecfp_public_key_t *publicKey) {
     cx_ecfp_private_key_t pk;
     uint8_t *keySeed = getKeySeed(index);
@@ -52,10 +51,6 @@ void deriveZilKeyPair(uint32_t index,
         cx_ecfp_init_public_key(CX_CURVE_SECP256K1, NULL, 0, publicKey);
         cx_ecfp_generate_pair(CX_CURVE_SECP256K1, publicKey, &pk, 1);
         PRINTF("publicKey:\n %.*H \n\n", publicKey->W_len, publicKey->W);
-    }
-    if (privateKey) {
-        *privateKey = pk;
-        PRINTF("privateKey:\n %.*H \n\n", pk.d_len, pk.d);
     }
 
     compressPubKey(publicKey);
@@ -126,7 +121,9 @@ void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {
     }
 }
 
-void bin2hex(uint8_t *dst, uint8_t *data, uint64_t inlen) {
+void bin2hex(uint8_t *dst, uint64_t dstlen, uint8_t *data, uint64_t inlen) {
+    if(dstlen < 2*inlen + 1)
+        THROW(SW_INVALID_PARAM);
     static uint8_t const hex[] = "0123456789abcdef";
     for (uint64_t i = 0; i < inlen; i++) {
         dst[2 * i + 0] = hex[(data[i] >> 4) & 0x0F];
