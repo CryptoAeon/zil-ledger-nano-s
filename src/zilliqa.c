@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <os.h>
 #include <cx.h>
-#include "derEncoding.h"
+#include "schnorr.h"
 #include "zilliqa.h"
 
 uint8_t * getKeySeed(uint32_t index) {
