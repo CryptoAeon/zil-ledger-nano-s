@@ -42,7 +42,7 @@ Fetch and build the Zilliqa Ledger Nano-S app `app.hex` in `$ZIL_LEDGER_NANO_S/b
   - `$cd $LEDGER_DIR; git clone https://github.com/CryptoAeon/zil-ledger-nano-s.git`
   - (ledgerenv) ...`$make clean; make`
 
-An extra argument `DBG=1` can be provided to `make` to enable debug builds.
+An extra argument `DBG=1` can be provided to `make` to enable debug builds. This will enable printing of debugging messages through `PRINTF` when the [debug firmware](https://ledger.readthedocs.io/en/latest/userspace/debugging.html) is installed.
 
 To ease setting up the environment for everyday development, we suggest having the following script `env.sh`. Edit it as necessary.
 
