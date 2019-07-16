@@ -1,5 +1,294 @@
 #include "schnorr.h"
 
+#define assert(x) \
+    if (x) {} else { THROW (INVALID_PARAMETER); }
+
+/* ------------------------------------------------------------------------ */
+/* ---                            secp256k1                             --- */
+/* ------------------------------------------------------------------------ */
+
+static unsigned char const C_cx_secp256k1_a[]  = { 
+  // a:  0x00
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static unsigned char const C_cx_secp256k1_b[]  = { 
+  //b:  0x07
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07};
+static  unsigned char const C_cx_secp256k1_p []  = { 
+  //p:  0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xfc, 0x2f};
+static unsigned char const C_cx_secp256k1_Hp[]  = {
+  //Hp: 0x000000000000000000000000000000000000000000000001000007a2000e90a1
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x07, 0xa2, 0x00, 0x0e, 0x90, 0xa1};
+static unsigned char const C_cx_secp256k1_Gx[] = { 
+  //Gx: 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
+  0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce, 0x87, 0x0b, 0x07, 
+  0x02, 0x9b, 0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2, 0x81, 0x5b, 0x16, 0xf8, 0x17, 0x98};
+static unsigned char const C_cx_secp256k1_Gy[] = { 
+  //Gy:  0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
+  0x48, 0x3a, 0xda, 0x77, 0x26, 0xa3, 0xc4, 0x65, 0x5d, 0xa4, 0xfb, 0xfc, 0x0e, 0x11, 0x08, 0xa8, 
+  0xfd, 0x17, 0xb4, 0x48, 0xa6, 0x85, 0x54, 0x19, 0x9c, 0x47, 0xd0, 0x8f, 0xfb, 0x10, 0xd4, 0xb8};
+static unsigned char const C_cx_secp256k1_n[]  = { 
+  //n: 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, 
+  0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48, 0xa0, 0x3b, 0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41, 0x41};
+static unsigned char const C_cx_secp256k1_Hn[]  = {
+  //Hn:0x9d671cd581c69bc5e697f5e45bcd07c6741496c20e7cf878896cf21467d7d140
+  0x9d, 0x67, 0x1c, 0xd5, 0x81, 0xc6, 0x9b, 0xc5, 0xe6, 0x97, 0xf5, 0xe4, 0x5b, 0xcd, 0x07, 0xc6,
+  0x74, 0x14, 0x96, 0xc2, 0x0e, 0x7c, 0xf8, 0x78, 0x89, 0x6c, 0xf2, 0x14, 0x67, 0xd7, 0xd1, 0x40};
+  
+#define C_cx_secp256k1_h  1
+
+cx_curve_weierstrass_t const C_cx_secp256k1 = { 
+  CX_CURVE_SECP256K1,
+  256, 32,
+  (unsigned char*)C_cx_secp256k1_p,
+  (unsigned char*)C_cx_secp256k1_Hp,
+  (unsigned char*)C_cx_secp256k1_Gx, 
+  (unsigned char*)C_cx_secp256k1_Gy, 
+  (unsigned char*)C_cx_secp256k1_n, 
+  (unsigned char*)C_cx_secp256k1_Hn, 
+  C_cx_secp256k1_h,
+  (unsigned char*)C_cx_secp256k1_a, 
+  (unsigned char*)C_cx_secp256k1_b, 
+};
+
+
+int zil_ecschnorr_sign(const cx_ecfp_private_key_t *pv_key,
+                      int mode,  cx_md_t hashID,
+                      const unsigned char  *msg, unsigned int msg_len,
+                      unsigned char *sig, unsigned int sig_len,
+                      unsigned int *info) {
+#define CX_MAX_TRIES 100
+
+  cx_curve_weierstrass_t WIDE const *domain;
+  unsigned int size;
+  cx_sha256_t H;
+
+  union {
+    unsigned char _Q[65];
+    cx_ecfp_256_public_key_t  _pub_key;
+  } u;
+  #define Q       u._Q
+  #define pub_key u._pub_key
+
+  unsigned Q_LEN = sizeof(u._Q);
+
+  unsigned char R[33];
+  unsigned char S[32];
+    
+  int tries;
+
+ 
+  domain = &C_cx_secp256k1;
+  size = domain->length;
+  //WARN: only accept weierstrass 256 bits curve for now
+  assert(hashID==CX_SHA256);
+  assert(size==32);
+  // assert(CX_CURVE_RANGE(pv_key->curve,WEIERSTRASS));
+  assert(sig_len >= (6+2*(size+1)));
+  assert(pv_key->d_len == size);
+
+
+  //get domain
+  if (info) {
+    *info = 0;
+  }
+
+  //generate random
+  tries = 0;
+ RETRY:
+  if (tries == CX_MAX_TRIES) {
+    return 0;
+  }
+  switch (mode&CX_MASK_RND) {    
+  case CX_RND_PROVIDED:
+    if (tries) {
+      return 0;
+    }
+    os_memmove(sig+size, sig, size);
+    break;
+
+  case CX_RND_TRNG:
+    cx_rng(sig+size,size);
+    break;
+
+  default :
+    THROW(INVALID_PARAMETER);
+  }
+  cx_math_modm(sig+size,size,(unsigned WIDE char *) PIC(domain->n), size);
+
+  //sign
+  tries++;
+  Q[0] = 4;
+  os_memmove(Q+1,      domain->Gx,size);
+  os_memmove(Q+1+size, domain->Gy,size);
+  cx_ecfp_scalar_mult(domain->curve, Q, Q_LEN, sig+size, size);
+
+  switch(mode&CX_MASK_EC) {
+     
+  case CX_ECSCHNORR_Z:
+  //https://github.com/Zilliqa/Zilliqa/blob/master/src/libCrypto/Schnorr.cpp
+  //https://docs.zilliqa.com/whitepaper.pdf
+  // 1. Generate a random k from [1, ..., order-1]
+  // 2. Compute the commitment Q = kG, where  G is the base point
+  // 3. Compute the challenge r = H(Q, kpub, m) [CME: mod n according to pdf/code, Q and kpub compressed "02|03 x" according to code)
+  // 4. If r = 0 mod(order), goto 1
+  // 4. Compute s = k - r*kpriv mod(order)
+  // 5. If s = 0 goto 1.
+  // 5  Signature on m is (r, s)
+    if ((Q[2*size]&1) == 1) {
+      R[0] = 0x03;
+    } else {
+      R[0] = 0x02;      
+    }
+    os_memmove(R+1, Q+1, size),
+    cx_ecfp_generate_pair2(domain->curve, &pub_key, (cx_ecfp_private_key_t *)pv_key, 1, CX_NONE);
+    if ((pub_key.W[2*size]&1) == 1) {
+      pub_key.W[0] = 0x03;
+    } else {
+      pub_key.W[0] = 0x02;
+    }
+    cx_sha256_init(&H);
+    cx_hash((cx_hash_t *)&H, 0, R, 1+size, NULL, 0);    
+    cx_hash((cx_hash_t *)&H, 0, pub_key.W, 1+size, NULL, 0);
+    cx_hash((cx_hash_t *)&H, CX_LAST|CX_NO_REINIT, msg, msg_len, R, sizeof(R));
+    cx_math_modm(R, 32, domain->n, size);
+    if (cx_math_is_zero(R,size)) {
+      goto RETRY;
+    }    
+    //s = (k-r*pv_key.d)%n
+    cx_math_multm(sig, R,        pv_key->d, domain->n, size);
+    cx_math_subm( S,   sig+size, sig,       domain->n, size);
+    if (cx_math_is_zero(S,size)) {
+      goto RETRY;
+    }
+    break;
+
+ 
+  default:
+    THROW(INVALID_PARAMETER);
+  }
+  
+  //encoding
+  size = cx_ecfp_encode_sig_der(sig, sig_len, R, size, S, size);
+  return size;
+
+#undef Q
+#undef pub_key
+#undef H
+  
+}
+
+/* ----------------------------------------------------------------------- */
+/*                                                                         */
+/* ----------------------------------------------------------------------- */
+int zil_ecschnorr_verify(const cx_ecfp_public_key_t *pu_key,
+                        int mode, cx_md_t hashID,
+                        const unsigned char *msg, unsigned int msg_len,
+                        const unsigned char *sig, unsigned int sig_len) {
+  
+  cx_curve_weierstrass_t const *domain;
+  unsigned int                 size;
+  unsigned char               *r, *s;
+  size_t                      r_len, s_len;
+  unsigned char               R[65];
+  unsigned char               Q[65];
+  unsigned char               h[32];
+  
+  unsigned R_LEN = sizeof(R);
+  unsigned Q_LEN = sizeof(Q);
+
+  cx_sha256_t H;
+
+  UNUSED(hashID);
+
+  domain = &C_cx_secp256k1;
+  size = domain->length; 
+  assert(hashID==CX_SHA256);
+  assert(size==32);
+  // assert(CX_CURVE_RANGE(pu_key->curve,WEIERSTRASS));
+  assert(pu_key->W_len == 1+2*size);
+
+  if (!cx_ecfp_decode_sig_der(sig, sig_len, size,
+                              &r, &r_len, &s, &s_len)) {
+    return 0;
+  }
+
+  if (cx_math_is_zero(r,r_len) || cx_math_is_zero(s,s_len)) {
+    return 0;
+  }
+  
+  int ok = 0;
+  switch(mode&CX_MASK_EC) {
+
+
+  case CX_ECSCHNORR_Z:
+    // The algorithm to check the signature (r, s) on a message m using a public
+    // key kpub is as follows
+    // 1. Check if r,s is in [1, ..., order-1]
+    // 2. Compute Q = sG + r*kpub
+    // 3. If Q = O (the neutral point), return 0;
+    // 4. r' = H(Q, kpub, m) [CME: mod n and Q and kpub compressed "02|03 x" according to pdf/code]
+    // 5. return r' == r
+
+    //r,s is in [1, ..., order-1]
+    os_memset(R,0,size);
+    os_memmove(R+size-r_len, r, r_len);
+    if (cx_math_cmp(R,domain->n,size)>=0) {
+      return 0;
+    }
+    os_memmove(R+size-s_len, s, s_len);
+    if (cx_math_cmp(R,domain->n,size)>=0) {
+      return 0;
+    }
+
+    //  Q = sG + r*kpub
+    Q[0] = 4;
+    os_memmove(Q+1,      domain->Gx,size);
+    os_memmove(Q+1+size, domain->Gy,size);  
+    cx_ecfp_scalar_mult(domain->curve, Q, Q_LEN, s, s_len); //sG
+    os_memmove(R,      pu_key->W,2*size+1);
+    cx_ecfp_scalar_mult(domain->curve, R, R_LEN, r, r_len); //rW    
+    cx_ecfp_add_point(domain->curve, Q, Q, R, R_LEN);
+    if (Q[0] == 0) {
+      return 0;
+    }
+    //r' = H(Q, kpub, m)
+    cx_sha256_init(&H);
+    if ((Q[2*size]&1) == 1) {
+      Q[0] = 0x03;
+    } else {
+      Q[0] = 0x02;      
+    }
+    cx_hash((cx_hash_t *)&H, 0, Q, 1+size, NULL, 0); //Q
+    os_memmove(Q,pu_key->W, pu_key->W_len);
+    if ((Q[2*size]&1) == 1) {
+      Q[0] = 0x03;
+    } else {
+      Q[0] = 0x02;      
+    }
+    cx_hash((cx_hash_t *)&H, 0, Q, 1+size, NULL, 0); //kpub
+    cx_hash((cx_hash_t *)&H, CX_LAST|CX_NO_REINIT, msg, msg_len, R, sizeof(R)); //m
+    cx_math_modm(R, size, domain->n, size);
+    //
+    os_memset(h,0,size);
+    os_memmove(h+size-r_len, r, r_len);
+    if (os_memcmp(h,R,size) == 0) {
+      ok = 1;
+    }
+    break;    
+
+    default:
+      THROW(INVALID_PARAMETER);
+  }
+    
+  return ok;
+}
+
 /* ----------------------------------------------------------------------- */
 /*                                                                         */
 /* ----------------------------------------------------------------------- */

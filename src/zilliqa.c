@@ -72,7 +72,7 @@ int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned in
 
     uint8_t signature[73];
     unsigned int info = 0;
-    int sig_len = cx_ecschnorr_sign(&privateKey,
+    int sig_len = zil_ecschnorr_sign(&privateKey,
                       CX_RND_TRNG | CX_ECSCHNORR_Z,
                       CX_SHA256,
                       hash,
