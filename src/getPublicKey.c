@@ -48,7 +48,6 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
     int fullSize = ctx->genAddr ? BECH32_ADDRSTR_LEN : (PUBLIC_KEY_BYTES_LEN * 2);
     if ((element->component.userid == 1 && ctx->displayIndex == 0) ||
         (element->component.userid == 2 && ctx->displayIndex == fullSize - 12)) {
-        P();
         return NULL;
     }
     return element;

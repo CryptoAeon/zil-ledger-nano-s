@@ -38,6 +38,7 @@ void compressPubKey(cx_ecfp_public_key_t *publicKey) {
     }
 
     publicKey->W_len = PUBLIC_KEY_BYTES_LEN;
+    PLOC();
 }
 
 void deriveZilPubKey(uint32_t index,
@@ -57,12 +58,12 @@ void deriveZilPubKey(uint32_t index,
 
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&pk, 0, sizeof(pk));
-    P();
+    PLOC();
 }
 
-int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned int hashLen) {
+void deriveAndSign(uint8_t *dst, uint32_t dst_len, uint32_t index, const uint8_t *msg, unsigned int msg_len) {
     PRINTF("index: %d\n", index);
-    PRINTF("hash: %.*H \n", hashLen, hash);
+    PRINTF("msg: %.*H \n", msg_len, msg);
 
     uint8_t *keySeed = getKeySeed(index);
 
@@ -70,43 +71,21 @@ int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned in
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
     PRINTF("privateKey: %.*H \n", privateKey.d_len, privateKey.d);
 
-    uint8_t signature[73];
-    unsigned int info = 0;
-    int sig_len = zil_ecschnorr_sign(&privateKey,
+    if (dst_len != SCHNORR_SIG_LEN_RS)
+        THROW (INVALID_PARAMETER);
+
+    zil_ecschnorr_sign(&privateKey,
                       CX_RND_TRNG | CX_ECSCHNORR_Z,
                       CX_SHA256,
-                      hash,
-                      hashLen,
-                      signature,
-                      73,
-                      &info);
-    PRINTF("DER signature: %.*H\n", sig_len, signature);
- 
+                      msg,
+                      msg_len,
+                      dst,
+                      dst_len);
+    PRINTF("signature: %.*H\n", SCHNORR_SIG_LEN_RS, dst);
+
+    // Erase private keys for better security.
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&privateKey, 0, sizeof(privateKey));
-
-#if DER_DECODE_ZILLIQA
-    uint8_t rs[64];
-    cx_ecfp_decode_sig_der_zilliqa(signature, rs);
-    PRINTF("(r,s) signature: %.*H\n", 64, rs);
-    os_memcpy(dst, rs, 64);
-#else
-    uint8_t *r, *s;
-    size_t r_len, s_len;
-    if (!cx_ecfp_decode_sig_der(signature, sig_len, 32, &r, &r_len, &s, &s_len)
-        || r_len > 32 || s_len > 32)
-    {
-        PRINTF("Error in DER decoding after Schnorr signing");
-        THROW(SW_DEVELOPER_ERR);
-    }
-    // Pad r,s returned with 32-len bytes.
-    os_memset(dst, 0, 32-r_len);
-    os_memcpy(dst+(32-r_len), r, r_len);
-    os_memset(dst+32, 0, 32-s_len);
-    os_memcpy(dst+32+(32-s_len), s, s_len);
-#endif // DER_DECODE_ZILLIQS
-
-    return 64;
 }
 
 void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {

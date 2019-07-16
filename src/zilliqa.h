@@ -6,7 +6,13 @@
 #define DER_DECODE_ZILLIQA 0
 
 // MACROS
-#define P() PRINTF("\n%s - %s:%d \n", __FILE__, __func__, __LINE__);
+#define PLOC() PRINTF("\n%s - %s:%d \n", __FILE__, __func__, __LINE__);
+#define assert(x) \
+    if (x) {} else { PLOC(); PRINTF("Assertion failed\n"); THROW (EXCEPTION); }
+#define FAIL(x) \
+    PLOC();\
+    PRINTF("Zilliqa ledger app failed: %s\n", x);\
+    THROW(EXCEPTION);
 
 // Constants
 #define SHA256_HASH_LEN 32
@@ -14,6 +20,7 @@
 #define PUBLIC_KEY_BYTES_LEN 33
 // https://github.com/Zilliqa/Zilliqa/wiki/Address-Standard#specification
 #define BECH32_ADDRSTR_LEN (3 + 1 + 32 + 6)
+#define SCHNORR_SIG_LEN_RS 64
 
 // exception codes
 #define SW_DEVELOPER_ERR 0x6B00
@@ -44,7 +51,7 @@ void deriveZilPubKey(uint32_t index, cx_ecfp_public_key_t *publicKey);
 // deriveAndSign derives an ECFP private key from an user specified index and the
 // Ledger seed, and uses it to produce a 72-byte signature of the provided hash.
 // The key is cleared from memory after signing.
-int deriveAndSign(uint8_t *dst, uint32_t index, const uint8_t *hash, unsigned int hashLen);
+void deriveAndSign(uint8_t *dst, uint32_t dst_len, uint32_t index, const uint8_t *msg, unsigned int msg_len);
 
 // BYTE UTILS
 
