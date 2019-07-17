@@ -54,55 +54,24 @@ cx_curve_weierstrass_t const C_cx_secp256k1 = {
   (unsigned char*)C_cx_secp256k1_b, 
 };
 
-
-void zil_ecschnorr_sign(const cx_ecfp_private_key_t *pv_key,
-                      int mode,  cx_md_t hashID,
-                      const unsigned char  *msg, unsigned int msg_len,
-                      unsigned char *sig, unsigned int sig_len) {
-
-#define CX_MAX_TRIES 100
-
-  cx_curve_weierstrass_t WIDE const *domain;
-  unsigned int size;
-  cx_sha256_t H;
-  int num_tries;
+// Begin schnorr signing. Initializes the already allocated parameter S.
+void zil_ecschnorr_sign_init
+(zil_ecschnorr_t *T, const cx_ecfp_private_key_t *pv_key)
+{
+  cx_curve_weierstrass_t WIDE const *domain = &C_cx_secp256k1;
+  unsigned int size = domain->length;
 
   union {
-    unsigned char _Q[65];
-    cx_ecfp_256_public_key_t  _pub_key;
-  } u;
-  #define Q       u._Q
-  #define pub_key u._pub_key
-  unsigned Q_LEN = sizeof(u._Q);
-
+    unsigned char Q[65];
+    cx_ecfp_256_public_key_t  pub_key;
+  } U;
+  unsigned Q_LEN = sizeof(U.Q);
   unsigned char R[33];
-  unsigned char S[32];
-  unsigned char K[32];
 
-  domain = &C_cx_secp256k1;
-  size = domain->length;
-  //WARN: only accept weierstrass 256 bits curve for now
-  assert(hashID==CX_SHA256);
-  assert(size==32 && sizeof(K) == size);
+  assert(size==32 && sizeof(T->K) == size);
   assert(pv_key->d_len == size);
-  assert(sig_len == SCHNORR_SIG_LEN_RS);
-  switch (mode&CX_MASK_RND) {
-  case CX_RND_TRNG:
-    cx_rng(K, size);
-    break;
-  default :
-    FAIL("Only CX_RND_TRNG supported");
-    THROW(INVALID_PARAMETER);
-  }
 
-  switch(mode&CX_MASK_EC) {
-  case CX_ECSCHNORR_Z:
-    break;
-  default:
-    FAIL("Only ECSchnorr signing supported");
-  }
-
-  PRINTF ("Entering the signing loop\n");
+  PLOC();
 
   //https://github.com/Zilliqa/Zilliqa/blob/master/src/libCrypto/Schnorr.cpp
   //https://docs.zilliqa.com/whitepaper.pdf
@@ -113,60 +82,90 @@ void zil_ecschnorr_sign(const cx_ecfp_private_key_t *pv_key,
   // 4. Compute s = k - r*kpriv mod(order)
   // 5. If s = 0 goto 1.
   // 5  Signature on m is (r, s)
-  for (num_tries = 0; num_tries < CX_MAX_TRIES; num_tries++) {
-    //generate random
-    cx_math_modm(K,size,(unsigned WIDE char *) PIC(domain->n), size);
 
-    //sign
-    Q[0] = 4;
-    os_memmove(Q+1,      domain->Gx,size);
-    os_memmove(Q+1+size, domain->Gy,size);
-    cx_ecfp_scalar_mult(domain->curve, Q, Q_LEN, K, size);
+  //generate random
+  cx_math_modm(T->K, size,(unsigned WIDE char *) PIC(domain->n), size);
 
-    if ((Q[2*size]&1) == 1) {
-      R[0] = 0x03;
-    } else {
-      R[0] = 0x02;      
-    }
-    os_memmove(R+1, Q+1, size),
-    cx_ecfp_generate_pair2(domain->curve, &pub_key, (cx_ecfp_private_key_t *)pv_key, 1, CX_NONE);
-    if ((pub_key.W[2*size]&1) == 1) {
-      pub_key.W[0] = 0x03;
-    } else {
-      pub_key.W[0] = 0x02;
-    }
-    cx_sha256_init(&H);
-    cx_hash((cx_hash_t *)&H, 0, R, 1+size, NULL, 0);    
-    cx_hash((cx_hash_t *)&H, 0, pub_key.W, 1+size, NULL, 0);
-    cx_hash((cx_hash_t *)&H, CX_LAST|CX_NO_REINIT, msg, msg_len, R, sizeof(R));
-    cx_math_modm(R, size, domain->n, size);
-    if (cx_math_is_zero(R,size)) {
-      continue;
-    }    
-    //s = (k-r*pv_key.d)%n
-    cx_math_multm(sig, R, pv_key->d, domain->n, size);
-    cx_math_subm(S, K, sig, domain->n, size);
-    if (cx_math_is_zero(S, size)) {
-      continue;
-    }
+  //sign
+  U.Q[0] = 4;
+  os_memmove(U.Q+1,      domain->Gx,size);
+  os_memmove(U.Q+1+size, domain->Gy,size);
+  cx_ecfp_scalar_mult(domain->curve, U.Q, Q_LEN, T->K, size);
 
-    // We're done.
-    break;
+  if ((U.Q[2*size]&1) == 1) {
+    R[0] = 0x03;
+  } else {
+    R[0] = 0x02;      
   }
+  os_memmove(R+1, U.Q+1, size),
+  cx_ecfp_generate_pair2(domain->curve, &U.pub_key, (cx_ecfp_private_key_t *)pv_key, 1, CX_NONE);
+  if ((U.pub_key.W[2*size]&1) == 1) {
+    U.pub_key.W[0] = 0x03;
+  } else {
+    U.pub_key.W[0] = 0x02;
+  }
+  cx_sha256_init(&(T->H));
+  cx_hash(&(T->H), 0, R, 1+size, NULL, 0);    
+  cx_hash(&(T->H), 0, U.pub_key.W, 1+size, NULL, 0);
+}
 
-  if (num_tries == CX_MAX_TRIES) {
-    // We ran out of attempts.
-    FAIL("Schnorr signature: Number of attempts exceeded");
+// Partially sign msg and update the schnorr state T.
+void zil_ecschnorr_sign_continue
+(zil_ecschnorr_t *T, const unsigned char *msg, unsigned int msg_len)
+{
+  if (msg_len != 0)
+    cx_hash(&(T->H), 0, msg, msg_len, NULL, 0);
+}
+
+// Complete the signing process and return signature.
+int zil_ecschnorr_sign_finish(
+  zil_ecschnorr_t *T, const cx_ecfp_private_key_t *pv_key,
+  unsigned char *sig, unsigned int sig_len)
+{
+  cx_curve_weierstrass_t WIDE const *domain = &C_cx_secp256k1;
+  unsigned int size = domain->length;
+  unsigned char R[32];
+  unsigned char S[32];
+
+  cx_hash(&(T->H), CX_LAST|CX_NO_REINIT, NULL, 0, R, sizeof(R));
+  cx_math_modm(R, size, domain->n, size);
+  if (cx_math_is_zero(R, size)) {
+    return 0;
+  }    
+  //s = (k-r*pv_key.d)%n
+  cx_math_multm(sig, R, pv_key->d, domain->n, size);
+  cx_math_subm(S, T->K, sig, domain->n, size);
+  if (cx_math_is_zero(S, size)) {
+    return 0;
   }
 
   // Move the (r,s) signature to the destination.
   os_memmove (sig, R, size);
   os_memmove (sig+size, S, size);
 
-#undef Q
-#undef pub_key
-#undef H
+  return 1;
+}
 
+// Sign a message in one go.
+void zil_ecschnorr_sign(
+  const cx_ecfp_private_key_t *pv_key,
+  const unsigned char  *msg, unsigned int msg_len,
+  unsigned char *sig, unsigned int sig_len) 
+{
+  const int CX_MAX_TRIES = 100;
+
+  assert(sig_len == SCHNORR_SIG_LEN_RS);
+
+  for (int num_tries = 0; num_tries < CX_MAX_TRIES; num_tries++) {
+    zil_ecschnorr_t T;
+    zil_ecschnorr_sign_init(&T, pv_key);
+    zil_ecschnorr_sign_continue(&T, msg, msg_len);
+    if (zil_ecschnorr_sign_finish(&T, pv_key, sig, sig_len))
+      return;
+  }
+
+  // We ran out of attempts.
+  FAIL("Schnorr signature: Number of attempts exceeded");
 }
 
 /* ----------------------------------------------------------------------- */

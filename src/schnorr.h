@@ -24,37 +24,22 @@ limitations under the License.
 #include <os.h>
 #include <cx.h>
 
-void zil_ecschnorr_sign(const cx_ecfp_private_key_t *pv_key,
-                      int mode,  cx_md_t hashID,
-                      const unsigned char  *msg, unsigned int msg_len,
-                      unsigned char *sig, unsigned int sig_len);
+typedef struct  {
+    cx_sha256_t H;         // partial hash.
+    unsigned char K[32];   // Random number.
+} zil_ecschnorr_t;
 
-int zil_ecschnorr_verify(const cx_ecfp_public_key_t *pu_key,
-                        int mode, cx_md_t hashID,
-                        const unsigned char *msg, unsigned int msg_len,
-                        const unsigned char *sig, unsigned int sig_len);
+void zil_ecschnorr_sign_init
+  (zil_ecschnorr_t *T, const cx_ecfp_private_key_t *pv_key);
 
-/* ----------------------------------------------------------------------- */
-/*                                                                         */
-/* ----------------------------------------------------------------------- */
-int cx_ecfp_encode_sig_der(unsigned char *sig,
-                           unsigned int sig_len,
-                           unsigned char *r,
-                           unsigned int r_len,
-                           unsigned char *s,
-                           unsigned int s_len);
+void zil_ecschnorr_sign_continue 
+  (zil_ecschnorr_t *S, const unsigned char *msg, unsigned int msg_len);
 
-/* ----------------------------------------------------------------------- */
-/*                                                                         */
-/* ----------------------------------------------------------------------- */
+int zil_ecschnorr_sign_finish(
+  zil_ecschnorr_t *T, const cx_ecfp_private_key_t *pv_key,
+  unsigned char *sig, unsigned int sig_len);
 
-int cx_ecfp_decode_sig_der(const uint8_t *input,
-                           size_t input_len,
-                           size_t max_size,
-                           uint8_t **r,
-                           size_t *r_len,
-                           uint8_t **s,
-                           size_t *s_len);
-
-// src must hold a valid DER encoded signature and dest must be allocated exactly 64 bytes.
-int cx_ecfp_decode_sig_der_zilliqa (uint8_t *src, uint8_t *dest);
+void zil_ecschnorr_sign(
+  const cx_ecfp_private_key_t *pv_key,
+  const unsigned char  *msg, unsigned int msg_len,
+  unsigned char *sig, unsigned int sig_len);
