@@ -1,6 +1,8 @@
 #ifndef ZIL_NANOS_ZILLIQA_H
 #define ZIL_NANOS_ZILLIQA_H
 
+#include "schnorr.h"
+
 // Use Zilliqa's DER decode function for signing?
 // (this shouldn't have any functional impact).
 #define DER_DECODE_ZILLIQA 0
@@ -21,6 +23,7 @@
 // https://github.com/Zilliqa/Zilliqa/wiki/Address-Standard#specification
 #define BECH32_ADDRSTR_LEN (3 + 1 + 32 + 6)
 #define SCHNORR_SIG_LEN_RS 64
+#define ZIL_AMOUNT_GASPRICE_BYTES 16
 
 // exception codes
 #define SW_DEVELOPER_ERR 0x6B00
@@ -48,8 +51,13 @@ void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey);
 // seed. Returns the public key (private key is not needed).
 void deriveZilPubKey(uint32_t index, cx_ecfp_public_key_t *publicKey);
 
-// deriveAndSign derives an ECFP private key from an user specified index and the
-// Ledger seed, and uses it to produce a 72-byte signature of the provided hash.
+// Three functions to stream the signature process. See deriveAndSign to do in a single operation.
+void deriveAndSignInit(zil_ecschnorr_t *T, uint32_t index);
+void deriveAndSignContinue(zil_ecschnorr_t *T, const uint8_t *msg, unsigned int msg_len);
+int deriveAndSignFinish(zil_ecschnorr_t *T, uint32_t index, unsigned char *dst, unsigned int dst_len);
+
+// deriveAndSign derives an ECFP private key from an user specified index and the Ledger seed,
+// and uses it to produce a SCHNORR_SIG_LEN_RS length signature of the provided message
 // The key is cleared from memory after signing.
 void deriveAndSign(uint8_t *dst, uint32_t dst_len, uint32_t index, const uint8_t *msg, unsigned int msg_len);
 

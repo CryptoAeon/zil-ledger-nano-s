@@ -33,8 +33,11 @@ def main(args):
     txnBytes = bytearray.fromhex(EncodedTxn)
     txnSizeBytes = struct.pack("<I", len(txnBytes))
 
+    hostBytesLeftBytes = struct.pack("<I", 0)
+
     prefix = apduPrefix()
-    payload = indexBytes + txnSizeBytes + txnBytes
+    # See signTxn.c:handleSignTxn() for sequence details of payload.
+    payload = indexBytes + hostBytesLeftBytes + txnSizeBytes + txnBytes
     L_c = bytes([len(payload)])
     apdu = prefix + L_c + payload
 

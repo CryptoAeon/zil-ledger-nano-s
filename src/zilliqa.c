@@ -62,24 +62,68 @@ void deriveZilPubKey(uint32_t index,
 }
 
 void deriveAndSign(uint8_t *dst, uint32_t dst_len, uint32_t index, const uint8_t *msg, unsigned int msg_len) {
-    PRINTF("index: %d\n", index);
-    PRINTF("msg: %.*H \n", msg_len, msg);
+    PRINTF("deriveAndSign: index: %d\n", index);
+    PRINTF("deriveAndSign: msg: %.*H \n", msg_len, msg);
 
     uint8_t *keySeed = getKeySeed(index);
 
     cx_ecfp_private_key_t privateKey;
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
-    PRINTF("privateKey: %.*H \n", privateKey.d_len, privateKey.d);
+    PRINTF("deriveAndSign: privateKey: %.*H \n", privateKey.d_len, privateKey.d);
 
     if (dst_len != SCHNORR_SIG_LEN_RS)
         THROW (INVALID_PARAMETER);
 
     zil_ecschnorr_sign(&privateKey, msg, msg_len, dst, dst_len);
-    PRINTF("signature: %.*H\n", SCHNORR_SIG_LEN_RS, dst);
+    PRINTF("deriveAndSign: signature: %.*H\n", SCHNORR_SIG_LEN_RS, dst);
 
     // Erase private keys for better security.
     os_memset(keySeed, 0, sizeof(keySeed));
     os_memset(&privateKey, 0, sizeof(privateKey));
+}
+
+void deriveAndSignInit(zil_ecschnorr_t *T, uint32_t index)
+{
+    PRINTF("deriveAndSignInit: index: %d\n", index);
+
+    uint8_t *keySeed = getKeySeed(index);
+    cx_ecfp_private_key_t privateKey;
+    cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
+    PRINTF("deriveAndSignInit: privateKey: %.*H \n", privateKey.d_len, privateKey.d);
+    zil_ecschnorr_sign_init (T, &privateKey);
+
+    // Erase private keys for better security.
+    os_memset(keySeed, 0, sizeof(keySeed));
+    os_memset(&privateKey, 0, sizeof(privateKey));
+}
+
+void deriveAndSignContinue(zil_ecschnorr_t *T, const uint8_t *msg, unsigned int msg_len)
+{
+    PRINTF("deriveAndSignContinue: msg: %.*H \n", msg_len, msg);
+
+    zil_ecschnorr_sign_continue(T, msg, msg_len);
+}
+
+int deriveAndSignFinish(zil_ecschnorr_t *T, uint32_t index, unsigned char *dst, unsigned int dst_len)
+{
+    PRINTF("deriveAndSignFinish: index: %d\n", index);
+
+    uint8_t *keySeed = getKeySeed(index);
+    cx_ecfp_private_key_t privateKey;
+    cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
+    PRINTF("deriveAndSignFinish: privateKey: %.*H \n", privateKey.d_len, privateKey.d);
+
+    if (dst_len != SCHNORR_SIG_LEN_RS)
+        THROW (INVALID_PARAMETER);
+
+    uint32_t s = zil_ecschnorr_sign_finish(T, &privateKey, dst, dst_len);
+    PRINTF("deriveAndSignFinish: signature: %.*H\n", SCHNORR_SIG_LEN_RS, dst);
+
+    // Erase private keys for better security.
+    os_memset(keySeed, 0, sizeof(keySeed));
+    os_memset(&privateKey, 0, sizeof(privateKey));
+
+    return s;
 }
 
 void pubkeyToZilAddress(uint8_t *dst, cx_ecfp_public_key_t *publicKey) {

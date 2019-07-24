@@ -27,7 +27,7 @@
 // point is this file, main.c, which initializes the app and runs the APDU
 // request/response loop. The loop reads APDU packets from the computer, which
 // instructs it to run various commands. The Zilliqa app supports three commands,
-// each defined in a separate file: getPublicKey and signHash.
+// each defined in a separate file: getVersion, getPublicKey and signTxn.
 // These each make use of Zilliqa-specific functions, which are defined in zilliqa.c.
 // Finally, some global variables and helper functions are declared in ux.h.
 //

@@ -1,3 +1,6 @@
+#ifndef ZIL_NANOS_SCHNORR_H
+#define ZIL_NANOS_SCHNORR_H
+
 /*
 Copyright 2011-2019, Ledger SAS
 
@@ -43,3 +46,5 @@ void zil_ecschnorr_sign(
   const cx_ecfp_private_key_t *pv_key,
   const unsigned char  *msg, unsigned int msg_len,
   unsigned char *sig, unsigned int sig_len);
+
+#endif // ZIL_NANOS_SCHNORR_H

@@ -4,6 +4,8 @@
 #include <os_io_seproxyhal.h>
 #include "zilliqa.h"
 #include "ux.h"
+#include "pb_decode.h"
+#include "txn.pb.h"
 
 static signTxnContext_t *ctx = &global.signTxnContext;
 
@@ -50,9 +52,8 @@ static unsigned int ui_signHash_approve_button(unsigned int button_mask, unsigne
 		break;
 
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT: // APPROVE
-		// Derive the secret key and sign the hash, storing the signature in
-		// the APDU buffer.
-		deriveAndSign(G_io_apdu_buffer, SCHNORR_SIG_LEN_RS, ctx->keyIndex, ctx->msg, ctx->msgLen);
+		// store the signature in the APDU buffer.
+		os_memcpy(G_io_apdu_buffer, ctx->signature, SCHNORR_SIG_LEN_RS);
 		// Send the data in the APDU buffer, along with a special code that
 		// indicates approval. 64 is the number of bytes in the response APDU,
 		// sans response code.
@@ -84,8 +85,8 @@ static const bagl_element_t ui_signHash_compare[] = {
 	// most apps use to indicate that the element should always be displayed.
 	// UI_BACKGROUND() also has userid == 0. And if you revisit the approval
 	// screen, you'll see that all of those elements have userid == 0 as well.
-	UI_TEXT(0x00, 0, 12, 128, "Compare Hashes:"),
-	UI_TEXT(0x00, 0, 26, 128, global.signTxnContext.partialHashStr),
+	UI_TEXT(0x00, 0, 12, 128, "Compare txn:"),
+	UI_TEXT(0x00, 0, 26, 128, global.signTxnContext.partialMsg),
 };
 
 // This is a "preprocessor" function that controls which elements of the
@@ -110,7 +111,7 @@ static const bagl_element_t* ui_prepro_signHash_compare(const bagl_element_t *el
 		return (ctx->displayIndex == 0) ? NULL : element;
 	case 2:
 		// 0x02 is the right, so return NULL if we're displaying the end of the text.
-		return (ctx->displayIndex == ctx->hexMsgLen - 12) ? NULL : element;
+		return (ctx->displayIndex == ctx->msgLen - 12) ? NULL : element;
 	default:
 		// Always display all other elements.
 		return element;
@@ -145,17 +146,17 @@ static unsigned int ui_signHash_compare_button(unsigned int button_mask, unsigne
 		// text. os_memmove is the Ledger SDK's version of memmove (there is
 		// no os_memcpy). In practice, I don't think it matters whether you
 		// use os_memmove or the standard memmove from <string.h>.
-		os_memmove(ctx->partialHashStr, ctx->hexMsg + ctx->displayIndex, 12);
+		os_memmove(ctx->partialMsg, ctx->msg + ctx->displayIndex, 12);
 		// Re-render the screen.
 		UX_REDISPLAY();
 		break;
 
 	case BUTTON_RIGHT:
 	case BUTTON_EVT_FAST | BUTTON_RIGHT: // SEEK RIGHT
-		if (ctx->displayIndex < ctx->hexMsgLen-12) {
+		if (ctx->displayIndex < ctx->msgLen-12) {
 			ctx->displayIndex++;
 		}
-		os_memmove(ctx->partialHashStr, ctx->hexMsg + ctx->displayIndex, 12);
+		os_memmove(ctx->partialMsg, ctx->msg + ctx->displayIndex, 12);
 		UX_REDISPLAY();
 		break;
 
@@ -176,24 +177,195 @@ static unsigned int ui_signHash_compare_button(unsigned int button_mask, unsigne
 	return 0;
 }
 
+// Append msg to ctx->msg for display. THROW if out of memory.
+void append_ctx_msg (const char* msg, int msg_len)
+{
+	if (ctx->msgLen + msg_len >= sizeof(ctx->msg)) {
+		FAIL("Display memory full");
+	}
+	
+	os_memcpy(ctx->msg + ctx->msgLen, msg, msg_len);
+	ctx->msgLen += msg_len;
+}
+
+bool istream_callback (pb_istream_t *stream, pb_byte_t *buf, size_t count)
+{
+	StreamData *sd = stream->state;
+	int bufNext = 0;
+
+	if (sd->len - sd->nextIdx > 0) {
+		// We have some data to spare.
+		int copylen = MIN(sd->len - sd->nextIdx, count);
+		os_memcpy(buf, sd->buf + sd->nextIdx, copylen);
+		count -= copylen;
+		bufNext += count;
+		sd->nextIdx += copylen;
+		PRINTF("Streamed %d bytes of data.\n", copylen);
+	}
+
+	if (count > 0) {
+		// More data to be streamed, but we've run out. Stream from host.
+		PRINTF("Still need to stream %d bytes of data.\n", count);
+		assert(sd->len == sd->nextIdx);
+		if (sd->hostBytesLeft) {
+			io_exchange_with_code(SW_OK, 0);
+			uint32_t hostBytesLeftOffset = 0;
+			uint32_t txnLenOffset = 4;
+			uint32_t dataOffset = 8;
+
+			uint32_t hostBytesLeft = U4LE(G_io_apdu_buffer, hostBytesLeftOffset);
+			uint32_t txnLen = U4LE(G_io_apdu_buffer, txnLenOffset);
+			PRINTF("istream_callback: txnLen: %d\n", txnLen);
+			if (txnLen > TXN_BUF_SIZE) {
+				FAIL("Cannot handle large data sent from host");
+			}
+
+			// Update and move data to our state.
+			sd->len = txnLen;
+			os_memcpy(sd->buf, G_io_apdu_buffer + dataOffset, txnLen);
+			sd->hostBytesLeft = hostBytesLeft;
+			sd->nextIdx = 0;
+
+			// Take care of updating our signature state.
+			deriveAndSignContinue(&ctx->ecs, sd->buf, txnLen);
+
+			PRINTF("Making recursive call to stream after io_exchange\n");
+			return istream_callback(stream, buf+bufNext, count);
+		} else {
+			// We need more data but can't fetch again. This is an error.
+			FAIL("Ran out of data to stream from host");
+		}
+	}
+
+	return true;
+}
+
+bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+	char buf[PUB_ADDR_BYTES_LEN]; // This is the maximum size required.
+	char bufdisp[PUB_ADDR_BYTES_LEN*2+1];
+	assert(ZIL_AMOUNT_GASPRICE_BYTES <= PUB_ADDR_BYTES_LEN);
+
+  int readlen;
+	const char* tagread;
+	switch (field->tag) {
+	case ProtoTransactionCoreInfo_toaddr_tag:
+		PRINTF("decode_callback: toaddr\n");
+		readlen = PUB_ADDR_BYTES_LEN;
+		tagread = "sendto:";
+		break;
+	case ByteArray_data_tag:
+		switch ((int) *arg) {
+		case ProtoTransactionCoreInfo_amount_tag:
+			PRINTF("decode_callback: amount\n");
+			readlen = ZIL_AMOUNT_GASPRICE_BYTES;
+			tagread = "amount:";
+			break;
+		case ProtoTransactionCoreInfo_gasprice_tag:
+			PRINTF("decode_callback: gasprice\n");
+			readlen = ZIL_AMOUNT_GASPRICE_BYTES;
+			tagread = "gasprice:";
+			break;
+		default:
+			PRINTF("decode_callback: arg: %d\n", (int) *arg);
+			readlen = 0;
+			tagread = "";
+			FAIL("Unhandled ByteArray tag.");
+		}
+		break;
+	default:
+		PRINTF("decode_callback: %d\n", field->tag);
+		readlen = 0;
+		tagread = "";
+		FAIL("Unhandled transaction element.");
+	}
+
+	if (pb_read(stream, (pb_byte_t*) buf, readlen)) {
+		PRINTF("decoded bytes: 0x%.*h\n", readlen, buf);
+		// Write data for display.
+		append_ctx_msg(tagread, strlen(tagread));
+		// Convert bytes to hex characters and append '\0'.
+		bin2hex((uint8_t*)bufdisp, readlen*2 + 1, (uint8_t*) buf, readlen);
+		append_ctx_msg(bufdisp, readlen*2);
+		append_ctx_msg(" ", 1);
+		PRINTF("pb_read: read %d bytes\n", readlen);
+	} else {
+		PRINTF("pb_read failed\n");
+		return false;
+	}
+
+	return true;
+}
+// Sign the txn, also deserializes parts of it. May call io_exchange multiple times.
+// Output: 1. Display message will be populated in ctx->msg.
+//         2. Signature will be populated in ctx->sdgnature.
+bool sign_deserialize_stream(uint8_t *txn1, int txn1Len, int hostBytesLeft)
+{
+	// Initialize stream data.
+	os_memcpy(ctx->sd.buf, txn1, txn1Len);
+	ctx->sd.nextIdx = 0; ctx->sd.len = txn1Len; ctx->sd.hostBytesLeft = hostBytesLeft;
+  // Setup the stream.
+	pb_istream_t stream = { istream_callback, &ctx->sd, hostBytesLeft + txn1Len, NULL };
+
+	// Initialize the display message.
+	ctx->msgLen = 0;
+	// Initialize schnorr signing, continue with what we have so far.
+	deriveAndSignInit(&ctx->ecs, ctx->keyIndex);
+	deriveAndSignContinue(&ctx->ecs, txn1, txn1Len);
+
+	// Initialize protobuf Txn structs.
+	ProtoTransactionCoreInfo txn = {};
+	// Set callbacks for handling the fields that what we need.
+	txn.toaddr.funcs.decode = decode_callback;
+	// Since we're using the same callback for amount and gasprice,
+	// but the tag for both will be set to "ByteArray", we differentiate with "arg".
+	txn.amount.data.funcs.decode = decode_callback;
+	txn.amount.data.arg = ProtoTransactionCoreInfo_amount_tag;
+	txn.gasprice.data.funcs.decode = decode_callback;
+	txn.gasprice.data.arg = ProtoTransactionCoreInfo_gasprice_tag;
+	// Start decoding (and signing).
+	if (pb_decode(&stream, ProtoTransactionCoreInfo_fields, &txn)) {
+		PRINTF ("pb_decode successful\n");
+		deriveAndSignFinish(&ctx->ecs, ctx->keyIndex, ctx->signature, SCHNORR_SIG_LEN_RS);
+		PRINTF ("sign_deserialize_stream: signature: 0x%.*h\n", SCHNORR_SIG_LEN_RS, ctx->signature);
+	} else {
+		PRINTF ("pb_decode failed\n");
+		return false;
+	}
+
+	return true;
+}
+
 void handleSignTxn(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
-    // Read the key index
-	ctx->keyIndex = U4LE(dataBuffer, 0);
-    PRINTF("ctx->keyIndex: %d \n", ctx->keyIndex);
-	// Read the hash len
-	ctx->msgLen = U4LE(dataBuffer, 4);
-    PRINTF("ctx->msgLen: %d \n", ctx->msgLen);
-	// Read the hash.
-	if (ctx->msgLen > sizeof(ctx->msg))
-		THROW(SW_INVALID_PARAM);
-	os_memmove(ctx->msg, dataBuffer+8, ctx->msgLen);
+	int dataIndexOffset = 0;      // offset for the key index to use
+	int dataHostBytesLeftOffset = 4; // offset for integer: is there more data (do io_exhange again)?
+	int dataTxnLenOffset = 8;     // offset for integer containing length of current txn
+	int dataOffset = 12;          // offset for actual transaction data.
+
+	uint8_t txndata[TXN_BUF_SIZE];
+	int txnLen, hostBytesLeft;
+
+    // Read the various integers at the beginning.
+	ctx->keyIndex = U4LE(dataBuffer, dataIndexOffset);
+	PRINTF("handleSignTxn: keyIndex: %d \n", ctx->keyIndex);
+	hostBytesLeft = U4LE(dataBuffer, dataHostBytesLeftOffset);
+	PRINTF("handleSignTxn: hostBytesLeft: %d \n", hostBytesLeft);
+	txnLen = U4LE(dataBuffer, dataTxnLenOffset);
+	PRINTF("handleSignTxn: txnLen: %d\n", txnLen);
+	if (txnLen > TXN_BUF_SIZE) {
+		FAIL("Cannot handle large data sent from host");
+	}
+
+	// Read the (partial) transaction
+	os_memmove(txndata, dataBuffer+dataOffset, txnLen);
+	// Sign the txn and get message for confirmation display, all in ctx.
+	// Signature will not go back to host until message display + approval.
+	sign_deserialize_stream(txndata, txnLen, hostBytesLeft);
 
 	// Prepare to display the comparison screen by converting the hash to hex
-	// and moving the first 12 characters into the partialHashStr buffer.
-	bin2hex(ctx->hexMsg, sizeof(ctx->hexMsg), ctx->msg, ctx->msgLen);
-	ctx->hexMsgLen = ctx->msgLen * 2;
-	os_memmove(ctx->partialHashStr, ctx->hexMsg, 12);
-	ctx->partialHashStr[12] = '\0';
+	// and moving the first 12 characters into the partialMsg buffer.
+	os_memmove(ctx->partialMsg, ctx->msg, 12);
+	ctx->partialMsg[12] = '\0';
 	ctx->displayIndex = 0;
 
 	PRINTF("msg:    %.*H \n", ctx->msgLen, ctx->msg);
