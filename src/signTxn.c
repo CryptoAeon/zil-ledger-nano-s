@@ -193,12 +193,15 @@ bool istream_callback (pb_istream_t *stream, pb_byte_t *buf, size_t count)
 	StreamData *sd = stream->state;
 	int bufNext = 0;
 
-	if (sd->len - sd->nextIdx > 0) {
+	PRINTF("istream_callback: sd->nextIdx = %d\n", sd->nextIdx);
+	PRINTF("istream_callback: sd->len = %d\n", sd->len);
+	int sdbufRem = sd->len - sd->nextIdx;
+	if (sdbufRem > 0) {
 		// We have some data to spare.
-		int copylen = MIN(sd->len - sd->nextIdx, count);
+		int copylen = MIN(sdbufRem, count);
 		os_memcpy(buf, sd->buf + sd->nextIdx, copylen);
 		count -= copylen;
-		bufNext += count;
+		bufNext += copylen;
 		sd->nextIdx += copylen;
 		PRINTF("Streamed %d bytes of data.\n", copylen);
 	}
@@ -208,13 +211,17 @@ bool istream_callback (pb_istream_t *stream, pb_byte_t *buf, size_t count)
 		PRINTF("Still need to stream %d bytes of data.\n", count);
 		assert(sd->len == sd->nextIdx);
 		if (sd->hostBytesLeft) {
-			io_exchange_with_code(SW_OK, 0);
+			G_io_apdu_buffer[0] = 0x90;
+    	G_io_apdu_buffer[1] = 0x00;
+			unsigned rx = io_exchange(CHANNEL_APDU, 2);
 			uint32_t hostBytesLeftOffset = 0;
 			uint32_t txnLenOffset = 4;
 			uint32_t dataOffset = 8;
 
 			uint32_t hostBytesLeft = U4LE(G_io_apdu_buffer, hostBytesLeftOffset);
 			uint32_t txnLen = U4LE(G_io_apdu_buffer, txnLenOffset);
+			PRINTF("istream_callback: io_exchanged %d bytes\n", rx);
+			PRINTF("istream_callback: hostBytesLeft: %d\n", hostBytesLeft);
 			PRINTF("istream_callback: txnLen: %d\n", txnLen);
 			if (txnLen > TXN_BUF_SIZE) {
 				FAIL("Cannot handle large data sent from host");
