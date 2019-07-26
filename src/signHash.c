@@ -208,7 +208,7 @@ static unsigned int ui_signHash_compare_button(unsigned int button_mask, unsigne
 		// into the indexStr buffer. We copy two bytes in the final os_memmove
 		// so as to include the terminating '\0' byte for the string.
 		os_memmove(ctx->indexStr, "with Key #", 10);
-		int n = bin2dec(ctx->indexStr+10, ctx->keyIndex);
+		int n = bin64b2dec(ctx->indexStr+10, sizeof(ctx->indexStr)-10, ctx->keyIndex);
 		os_memmove(ctx->indexStr+10+n, "?", 2);
 		// Note that because the approval screen does not have a preprocessor,
 		// we must pass NULL.

@@ -12,9 +12,11 @@
 #define assert(x) \
     if (x) {} else { PLOC(); PRINTF("Assertion failed\n"); THROW (EXCEPTION); }
 #define FAIL(x) \
-    PLOC();\
-    PRINTF("Zilliqa ledger app failed: %s\n", x);\
-    THROW(EXCEPTION);
+    { \
+        PLOC();\
+        PRINTF("Zilliqa ledger app failed: %s\n", x);\
+        THROW(EXCEPTION); \
+    }
 
 // Constants
 #define SHA256_HASH_LEN 32
@@ -66,9 +68,9 @@ void deriveAndSign(uint8_t *dst, uint32_t dst_len, uint32_t index, const uint8_t
 // bin2hex converts binary to hex and appends a final NUL byte.
 void bin2hex(uint8_t *dst, uint64_t dstlen, uint8_t *data, uint64_t inlen);
 
-// bin2dec converts an unsigned integer to a decimal string and appends a
+// bin64b2dec converts an unsigned integer to a decimal string and appends a
 // final NUL byte. It returns the length of the string.
-int bin2dec(uint8_t *dst, uint64_t n);
+int bin64b2dec(uint8_t *dst, uint32_t dst_len, uint64_t n);
 
 // Given a hex string with numhexchar characters, convert it
 // to byte sequence and place in "bin" (which must be allocated

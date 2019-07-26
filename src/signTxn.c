@@ -6,6 +6,7 @@
 #include "ux.h"
 #include "pb_decode.h"
 #include "txn.pb.h"
+#include "uint256.h"
 
 static signTxnContext_t *ctx = &global.signTxnContext;
 
@@ -165,7 +166,7 @@ static unsigned int ui_signHash_compare_button(unsigned int button_mask, unsigne
 		// into the indexStr buffer. We copy two bytes in the final os_memmove
 		// so as to include the terminating '\0' byte for the string.
 		os_memmove(ctx->indexStr, "with Key #", 10);
-		int n = bin2dec(ctx->indexStr+10, ctx->keyIndex);
+		int n = bin64b2dec(ctx->indexStr+10, sizeof(ctx->indexStr)-10, ctx->keyIndex);
 		os_memmove(ctx->indexStr+10+n, "?", 2);
 		// Note that because the approval screen does not have a preprocessor,
 		// we must pass NULL.
@@ -251,6 +252,7 @@ bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
 	char buf[PUB_ADDR_BYTES_LEN]; // This is the maximum size required.
 	char bufdisp[PUB_ADDR_BYTES_LEN*2+1];
+	// bufdisp has to hold 40 hex characters or UINT128_MAX (in decimal).
 	assert(ZIL_AMOUNT_GASPRICE_BYTES <= PUB_ADDR_BYTES_LEN);
 
   int readlen;
@@ -291,9 +293,34 @@ bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
 		PRINTF("decoded bytes: 0x%.*h\n", readlen, buf);
 		// Write data for display.
 		append_ctx_msg(tagread, strlen(tagread));
-		// Convert bytes to hex characters and append '\0'.
-		bin2hex((uint8_t*)bufdisp, readlen*2 + 1, (uint8_t*) buf, readlen);
-		append_ctx_msg(bufdisp, readlen*2);
+		if (readlen == PUB_ADDR_BYTES_LEN) {
+			// Convert bytes to hex characters and append '\0'.
+			bin2hex((uint8_t*)bufdisp, sizeof(bufdisp), (uint8_t*) buf, PUB_ADDR_BYTES_LEN);
+			append_ctx_msg(bufdisp, readlen*2);
+		} else {
+			assert(readlen == ZIL_AMOUNT_GASPRICE_BYTES);
+			// It is either gasprice or amount. a uint128_t value.
+			// Convert to decimal, appending a '\0'.
+			// ZIL data is big-endian, we need little-endian here.
+			for (int i = 0; i < 4; i++) {
+				// The upper 64b and lower 64b themselves aren't swapped, just within them.
+				// Upper uint64 is converted to little endian.
+				uint8_t t = buf[i];
+				buf[i] = buf[7-i];
+				buf[7-i] = t;
+				// lower uint64 is converted to little endian.
+				t = buf[8+i];
+				buf[8+i] = buf[15-i];
+				buf[15-i] = t;
+			}
+			if (tostring128((uint128_t*)buf, 10, bufdisp, sizeof(bufdisp))) {
+				PRINTF("128b to decimal converted value: %s\n", bufdisp);
+				int len = strlen(bufdisp);
+				append_ctx_msg(bufdisp, len);
+			} else {
+				FAIL("Error converting 128b unsigned to decimal");
+			}
+		}
 		append_ctx_msg(" ", 1);
 		PRINTF("pb_read: read %d bytes\n", readlen);
 	} else {

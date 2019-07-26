@@ -193,17 +193,23 @@ void hex2bin(uint8_t *hexstr, unsigned numhexchars, uint8_t *bin) {
     }
 }
 
-int bin2dec(uint8_t *dst, uint64_t n) {
+int bin64b2dec(uint8_t *dst, uint32_t dst_len, uint64_t n) {
     if (n == 0) {
+        if (dst_len < 2)
+            FAIL("Insufficient destination buffer length to represent 0");
         dst[0] = '0';
         dst[1] = '\0';
         return 1;
     }
     // determine final length
-    int len = 0;
+    uint32_t len = 0;
     for (uint64_t nn = n; nn != 0; nn /= 10) {
         len++;
     }
+
+    if (dst_len < len+1)
+        FAIL("Insufficient destination buffer length for decimal representation.");
+
     // write digits in big-endian order
     for (int i = len - 1; i >= 0; i--) {
         dst[i] = (n % 10) + '0';

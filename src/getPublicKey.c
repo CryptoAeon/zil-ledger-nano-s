@@ -212,7 +212,7 @@ void handleGetPublicKey(uint8_t p1,
     }
 
     os_memmove(ctx->keyStr, "Key #", offset);
-    int n = bin2dec(ctx->keyStr + offset, ctx->keyIndex);
+    int n = bin64b2dec(ctx->keyStr + offset, sizeof(ctx->keyStr)-offset, ctx->keyIndex);
     os_memmove(ctx->keyStr + offset + n, "?", 2);
 
     UX_DISPLAY(ui_getPublicKey_approve, NULL);
