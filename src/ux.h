@@ -1,6 +1,11 @@
 #ifndef ZIL_NANOS_UX_H
 #define ZIL_NANOS_UX_H
 
+#include "schnorr.h"
+#include "zilliqa.h"
+
+#define TXN_BUF_SIZE 256
+
 typedef struct {
 	uint32_t keyIndex;
 	bool genAddr;
@@ -25,16 +30,23 @@ typedef struct {
 } signHashContext_t;
 
 typedef struct {
+	uint8_t buf[TXN_BUF_SIZE];
+	uint32_t nextIdx, len; // next read into buf and len of buf.
+	int hostBytesLeft;     // How many more bytes to be streamed from host.
+} StreamData;
+
+typedef struct {
 	uint32_t keyIndex;
-	uint8_t msg[256];
-	unsigned int msgLen;
+	zil_ecschnorr_t ecs;
+	uint8_t signature[SCHNORR_SIG_LEN_RS];
+  StreamData sd;
 
 	// Used for display
-	uint8_t hexMsg[513]; // 2*sizeof(msg) + 1 for '\0'.
-	unsigned int hexMsgLen;
+	uint8_t msg[512];
+	unsigned int msgLen;
 	uint32_t displayIndex;
 	uint8_t indexStr[40]; // variable-length
-	uint8_t partialHashStr[13];
+	uint8_t partialMsg[13];
 } signTxnContext_t;
 
 // To save memory, we store all the context types in a single global union,

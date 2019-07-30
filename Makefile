@@ -26,7 +26,7 @@ include $(BOLOS_SDK)/Makefile.defines
 
 APPNAME    = Zilliqa
 ICONNAME   = zilliqa-nano-s.gif
-APPVERSION = 0.2.1
+APPVERSION = 0.3.0
 
 # The --path argument here restricts which BIP32 paths the app is allowed to derive.
 APP_LOAD_PARAMS = --path "44'/313'" --curve secp256k1 $(COMMON_LOAD_PARAMS)
@@ -56,8 +56,7 @@ DEFINES += OS_IO_SEPROXYHAL IO_SEPROXYHAL_BUFFER_SIZE_B=256
 DEFINES += HAVE_BAGL
 
 ifdef DBG
-DEFINES += HAVE_SPRINTF
-DEFINES += HAVE_PRINTF PRINTF=screen_printf
+DEFINES += HAVE_SPRINTF HAVE_PRINTF PRINTF=screen_printf
 else
 DEFINES += PRINTF\(...\)=
 endif

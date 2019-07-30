@@ -27,7 +27,7 @@
 // point is this file, main.c, which initializes the app and runs the APDU
 // request/response loop. The loop reads APDU packets from the computer, which
 // instructs it to run various commands. The Zilliqa app supports three commands,
-// each defined in a separate file: getPublicKey and signHash.
+// each defined in a separate file: getVersion, getPublicKey and signTxn.
 // These each make use of Zilliqa-specific functions, which are defined in zilliqa.c.
 // Finally, some global variables and helper functions are declared in ux.h.
 //
@@ -245,7 +245,7 @@ static void zil_main(void) {
 				tx = 0; // ensure no race in CATCH_OTHER if io_exchange throws an error
 				rx = io_exchange(CHANNEL_APDU | flags, rx);
 
-                P();
+                PLOC();
 
                 flags = 0;
 
@@ -266,7 +266,7 @@ static void zil_main(void) {
 				          G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], &flags, &tx);
 			}
 			CATCH(EXCEPTION_IO_RESET) {
-                P();
+                PLOC();
 				THROW(EXCEPTION_IO_RESET);
 			}
 			CATCH_OTHER(e) {
@@ -279,7 +279,7 @@ static void zil_main(void) {
 				// convert it to a proper error code. I'm not totally sure why
 				// this is done; perhaps to handle single-byte exception
 				// codes?
-                P();
+                PLOC();
                 PRINTF("e:%d\n", e);
 				switch (e & 0xF000) {
 				case 0x6000:

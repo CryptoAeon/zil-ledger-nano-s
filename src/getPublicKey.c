@@ -48,7 +48,6 @@ static const bagl_element_t *ui_prepro_getPublicKey_compare(const bagl_element_t
     int fullSize = ctx->genAddr ? BECH32_ADDRSTR_LEN : (PUBLIC_KEY_BYTES_LEN * 2);
     if ((element->component.userid == 1 && ctx->displayIndex == 0) ||
         (element->component.userid == 2 && ctx->displayIndex == fullSize - 12)) {
-        P();
         return NULL;
     }
     return element;
@@ -213,7 +212,7 @@ void handleGetPublicKey(uint8_t p1,
     }
 
     os_memmove(ctx->keyStr, "Key #", offset);
-    int n = bin2dec(ctx->keyStr + offset, ctx->keyIndex);
+    int n = bin64b2dec(ctx->keyStr + offset, sizeof(ctx->keyStr)-offset, ctx->keyIndex);
     os_memmove(ctx->keyStr + offset + n, "?", 2);
 
     UX_DISPLAY(ui_getPublicKey_approve, NULL);
