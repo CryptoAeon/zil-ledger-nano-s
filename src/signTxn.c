@@ -7,6 +7,7 @@
 #include "pb_decode.h"
 #include "txn.pb.h"
 #include "uint256.h"
+#include "bech32_addr.h"
 
 static signTxnContext_t *ctx = &global.signTxnContext;
 
@@ -294,9 +295,14 @@ bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
 		// Write data for display.
 		append_ctx_msg(tagread, strlen(tagread));
 		if (readlen == PUB_ADDR_BYTES_LEN) {
-			// Convert bytes to hex characters and append '\0'.
-			bin2hex((uint8_t*)bufdisp, sizeof(bufdisp), (uint8_t*) buf, PUB_ADDR_BYTES_LEN);
-			append_ctx_msg(bufdisp, readlen*2);
+			char bech32_buf[76]; // max required for bech32_encode.
+			if (!bech32_addr_encode(bech32_buf, "zil", buf, PUB_ADDR_BYTES_LEN)) {
+				FAIL ("bech32 encoding of sendto address failed");
+			}
+			if (strlen(bech32_buf) != BECH32_ADDRSTR_LEN) {
+				FAIL ("bech32 encoded address of incorrect length");
+			}
+			append_ctx_msg(bech32_buf, BECH32_ADDRSTR_LEN);
 		} else {
 			assert(readlen == ZIL_AMOUNT_GASPRICE_BYTES);
 			// It is either gasprice or amount. a uint128_t value.
