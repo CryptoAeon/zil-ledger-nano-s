@@ -20,7 +20,7 @@ EncodedTxn = "08818004100d1a148ad0357ebb5515f694de597eda6f3f6bdbad0fd922230a2102
 def apduPrefix():
     # https://en.wikipedia.org/wiki/Smart_card_application_protocol_data_unit
     CLA = bytes.fromhex("E0")
-    INS = b"\x08"
+    INS = b"\x04"
     P1 = b"\x00"
     P2 = b"\x00"
 
