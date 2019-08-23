@@ -83,8 +83,11 @@ void zil_ecschnorr_sign_init
   // 5. If s = 0 goto 1.
   // 5  Signature on m is (r, s)
 
-  //generate random
-  cx_math_modm(T->K, size,(unsigned WIDE char *) PIC(domain->n), size);
+  //generate random, pick a few extra bytes for better security.
+  unsigned char nonce[size+8];
+  cx_rng(nonce, size+8);
+  cx_math_modm(nonce, size+8, (unsigned WIDE char *) PIC(domain->n), size);
+  os_memcpy(T->K, nonce, size);
 
   //sign
   U.Q[0] = 4;

@@ -5,8 +5,8 @@
 #include "schnorr.h"
 #include "zilliqa.h"
 
+static uint8_t keySeed[32];
 uint8_t * getKeySeed(uint32_t index) {
-    static uint8_t keySeed[32];
 
     // bip32 path for 44'/313'/n'/0'/0'
     // 313 0x80000139 ZIL Zilliqa
@@ -48,11 +48,10 @@ void deriveZilPubKey(uint32_t index,
 
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &pk);
 
-    if (publicKey) {
-        cx_ecfp_init_public_key(CX_CURVE_SECP256K1, NULL, 0, publicKey);
-        cx_ecfp_generate_pair(CX_CURVE_SECP256K1, publicKey, &pk, 1);
-        PRINTF("publicKey:\n %.*H \n\n", publicKey->W_len, publicKey->W);
-    }
+    assert (publicKey);
+    cx_ecfp_init_public_key(CX_CURVE_SECP256K1, NULL, 0, publicKey);
+    cx_ecfp_generate_pair(CX_CURVE_SECP256K1, publicKey, &pk, 1);
+    PRINTF("publicKey:\n %.*H \n\n", publicKey->W_len, publicKey->W);
 
     compressPubKey(publicKey);
 
