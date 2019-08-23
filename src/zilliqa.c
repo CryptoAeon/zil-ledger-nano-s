@@ -5,8 +5,9 @@
 #include "schnorr.h"
 #include "zilliqa.h"
 
-static uint8_t keySeed[32];
-uint8_t * getKeySeed(uint32_t index) {
+#define KEY_SEED_LEN 32
+
+uint8_t * getKeySeed(uint8_t* keySeed, uint32_t index) {
 
     // bip32 path for 44'/313'/n'/0'/0'
     // 313 0x80000139 ZIL Zilliqa
@@ -17,7 +18,7 @@ uint8_t * getKeySeed(uint32_t index) {
                             0x80000000};
 
     os_perso_derive_node_bip32(CX_CURVE_SECP256K1, bip32Path, 5, keySeed, NULL);
-    PRINTF("keySeed: %.*H \n", 32, keySeed);
+    PRINTF("keySeed: %.*H \n", KEY_SEED_LEN, keySeed);
     return keySeed;
 }
 
@@ -44,7 +45,9 @@ void compressPubKey(cx_ecfp_public_key_t *publicKey) {
 void deriveZilPubKey(uint32_t index,
                       cx_ecfp_public_key_t *publicKey) {
     cx_ecfp_private_key_t pk;
-    uint8_t *keySeed = getKeySeed(index);
+
+    uint8_t keySeed[KEY_SEED_LEN];
+    getKeySeed(keySeed, index);
 
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &pk);
 
@@ -64,7 +67,8 @@ void deriveAndSign(uint8_t *dst, uint32_t dst_len, uint32_t index, const uint8_t
     PRINTF("deriveAndSign: index: %d\n", index);
     PRINTF("deriveAndSign: msg: %.*H \n", msg_len, msg);
 
-    uint8_t *keySeed = getKeySeed(index);
+    uint8_t keySeed[KEY_SEED_LEN];
+    getKeySeed(keySeed, index);
 
     cx_ecfp_private_key_t privateKey;
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
@@ -85,7 +89,8 @@ void deriveAndSignInit(zil_ecschnorr_t *T, uint32_t index)
 {
     PRINTF("deriveAndSignInit: index: %d\n", index);
 
-    uint8_t *keySeed = getKeySeed(index);
+    uint8_t keySeed[KEY_SEED_LEN];
+    getKeySeed(keySeed, index);
     cx_ecfp_private_key_t privateKey;
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
     PRINTF("deriveAndSignInit: privateKey: %.*H \n", privateKey.d_len, privateKey.d);
@@ -107,7 +112,8 @@ int deriveAndSignFinish(zil_ecschnorr_t *T, uint32_t index, unsigned char *dst, 
 {
     PRINTF("deriveAndSignFinish: index: %d\n", index);
 
-    uint8_t *keySeed = getKeySeed(index);
+    uint8_t keySeed[KEY_SEED_LEN];
+    getKeySeed(keySeed, index);
     cx_ecfp_private_key_t privateKey;
     cx_ecfp_init_private_key(CX_CURVE_SECP256K1, keySeed, 32, &privateKey);
     PRINTF("deriveAndSignFinish: privateKey: %.*H \n", privateKey.d_len, privateKey.d);

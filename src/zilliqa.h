@@ -40,9 +40,6 @@
 
 // FUNCTIONS
 
-// Get the seed key for Zilliqa BIP32 path
-uint8_t * getKeySeed(uint32_t index);
-
 // Convert un-compressed zilliqa public key to a compressed form.
 void compressPubKey(cx_ecfp_public_key_t *publicKey);
 
