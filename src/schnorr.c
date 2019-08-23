@@ -142,6 +142,9 @@ int zil_ecschnorr_sign_finish(
     return 0;
   }
 
+  // Clear for security reasons.
+  os_memset(T->K, 0, size);
+
   // Move the (r,s) signature to the destination.
   os_memmove (sig, R, size);
   os_memmove (sig+size, S, size);
