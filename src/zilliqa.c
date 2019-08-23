@@ -7,7 +7,7 @@
 
 #define KEY_SEED_LEN 32
 
-uint8_t * getKeySeed(uint8_t* keySeed, uint32_t index) {
+void getKeySeed(uint8_t* keySeed, uint32_t index) {
 
     // bip32 path for 44'/313'/n'/0'/0'
     // 313 0x80000139 ZIL Zilliqa
@@ -19,7 +19,6 @@ uint8_t * getKeySeed(uint8_t* keySeed, uint32_t index) {
 
     os_perso_derive_node_bip32(CX_CURVE_SECP256K1, bip32Path, 5, keySeed, NULL);
     PRINTF("keySeed: %.*H \n", KEY_SEED_LEN, keySeed);
-    return keySeed;
 }
 
 void compressPubKey(cx_ecfp_public_key_t *publicKey) {
