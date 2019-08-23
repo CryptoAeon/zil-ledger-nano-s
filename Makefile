@@ -45,7 +45,7 @@ all: default
 load: all
 	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 
-delete:32
+delete:
 	python -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
 ############
