@@ -228,7 +228,7 @@ bool istream_callback (pb_istream_t *stream, pb_byte_t *buf, size_t count)
 			if (txnLen > TXN_BUF_SIZE) {
 				FAIL("Cannot handle large data sent from host");
 			}
-			assert(txnLen + hostBytesLeft <= ZIL_MAX_TXN_SIZE);
+			assert(hostBytesLeft <= ZIL_MAX_TXN_SIZE - txnLen);
 
 			// Update and move data to our state.
 			sd->len = txnLen;
