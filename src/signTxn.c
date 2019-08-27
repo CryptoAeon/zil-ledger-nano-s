@@ -345,7 +345,7 @@ bool sign_deserialize_stream(uint8_t *txn1, int txn1Len, int hostBytesLeft)
 	// Initialize stream data.
 	os_memcpy(ctx->sd.buf, txn1, txn1Len);
 	ctx->sd.nextIdx = 0; ctx->sd.len = txn1Len; ctx->sd.hostBytesLeft = hostBytesLeft;
-	assert(hostBytesLeft + txn1Len <= ZIL_MAX_TXN_SIZE);
+	assert(hostBytesLeft <= ZIL_MAX_TXN_SIZE - txn1Len);
   // Setup the stream.
 	pb_istream_t stream = { istream_callback, &ctx->sd, hostBytesLeft + txn1Len, NULL };
 
