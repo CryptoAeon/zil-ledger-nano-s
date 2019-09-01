@@ -27,6 +27,9 @@
 #define SCHNORR_SIG_LEN_RS 64
 #define ZIL_AMOUNT_GASPRICE_BYTES 16
 #define ZIL_MAX_TXN_SIZE 8388608 // 8MB
+// UINT128_MAX has 39 digits. Another 3 digits for "0." and '\0'.
+// ("0." is prepended when converted Qa to Zil).
+#define ZIL_UINT128_BUF_LEN 42
 
 // exception codes
 #define SW_DEVELOPER_ERR 0x6B00
@@ -60,6 +63,11 @@ int deriveAndSignFinish(zil_ecschnorr_t *T, uint32_t index, unsigned char *dst, 
 // and uses it to produce a SCHNORR_SIG_LEN_RS length signature of the provided message
 // The key is cleared from memory after signing.
 void deriveAndSign(uint8_t *dst, uint32_t dst_len, uint32_t index, const uint8_t *msg, unsigned int msg_len);
+
+// Converts a null-terminated buffer containing Qa to Zil / Li
+// assert (zil/li_buf_len >= ZIL_UINT128_BUF_LEN);
+void qa_to_zil(const char* qa, char* zil_buf, int zil_buf_len);
+void qa_to_li(const char* qa, char* li_buf, int li_buf_len);
 
 // BYTE UTILS
 

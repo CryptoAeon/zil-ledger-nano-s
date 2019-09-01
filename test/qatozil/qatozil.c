@@ -9,7 +9,7 @@
 #define MAX_BUF_LEN 42
 
 #define QA_ZIL_SHIFT 12
-#define LI_ZIL_SHIFT 6
+#define QA_LI_SHIFT 6
 
 /* Filter out leading zero's and non-digit characters in a null terminated string. */
 void cleanse_input(char *buf) {
@@ -60,7 +60,7 @@ void ToZil(char *input, char *output, int shift)
 {
   int len = strlen(input);
   assert(len > 0 && len < MAX_BUF_LEN);
-  assert(shift == QA_ZIL_SHIFT || shift == LI_ZIL_SHIFT);
+  assert(shift == QA_ZIL_SHIFT || shift == QA_LI_SHIFT);
 
   if (len <= shift) {
     strcpy(output, "0.");

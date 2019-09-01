@@ -253,8 +253,6 @@ bool istream_callback (pb_istream_t *stream, pb_byte_t *buf, size_t count)
 bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
 	char buf[PUB_ADDR_BYTES_LEN]; // This is the maximum size required.
-	char bufdisp[PUB_ADDR_BYTES_LEN*2+1];
-	// bufdisp has to hold 40 hex characters or UINT128_MAX (in decimal).
 	assert(ZIL_AMOUNT_GASPRICE_BYTES <= PUB_ADDR_BYTES_LEN);
 
   int readlen;
@@ -270,12 +268,12 @@ bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
 		case ProtoTransactionCoreInfo_amount_tag:
 			PRINTF("decode_callback: amount\n");
 			readlen = ZIL_AMOUNT_GASPRICE_BYTES;
-			tagread = "amount:";
+			tagread = "amount(Zil):";
 			break;
 		case ProtoTransactionCoreInfo_gasprice_tag:
 			PRINTF("decode_callback: gasprice\n");
 			readlen = ZIL_AMOUNT_GASPRICE_BYTES;
-			tagread = "gasprice:";
+			tagread = "gasprice(Zil):";
 			break;
 		default:
 			PRINTF("decode_callback: arg: %d\n", (int) *arg);
@@ -320,10 +318,16 @@ bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
 				buf[8+i] = buf[15-i];
 				buf[15-i] = t;
 			}
-			if (tostring128((uint128_t*)buf, 10, bufdisp, sizeof(bufdisp))) {
-				PRINTF("128b to decimal converted value: %s\n", bufdisp);
-				int len = strlen(bufdisp);
-				append_ctx_msg(bufdisp, len);
+			// UINT128 can have a maximum of 39 decimal digits. When we convert
+			// "Qa" values to "Zil", we may have to append "0." at the start.
+			// So a total of 39 + 2 + '\0' = 42.
+			char qabuf[42], dispbuf[42];
+			if (tostring128((uint128_t*)buf, 10, qabuf, sizeof(qabuf))) {
+				PRINTF("128b to decimal converted value: %s\n", qabuf);
+				qa_to_zil(qabuf, dispbuf, sizeof(dispbuf));
+				PRINTF("Qa converted to Zil: %s\n", dispbuf);
+				strcpy(qabuf, dispbuf);
+				append_ctx_msg(qabuf, strlen(qabuf));
 			} else {
 				FAIL("Error converting 128b unsigned to decimal");
 			}
