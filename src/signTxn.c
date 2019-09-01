@@ -321,7 +321,7 @@ bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
 			// UINT128 can have a maximum of 39 decimal digits. When we convert
 			// "Qa" values to "Zil", we may have to append "0." at the start.
 			// So a total of 39 + 2 + '\0' = 42.
-			char qabuf[42], dispbuf[42];
+			char qabuf[ZIL_UINT128_BUF_LEN], dispbuf[ZIL_UINT128_BUF_LEN];
 			if (tostring128((uint128_t*)buf, 10, qabuf, sizeof(qabuf))) {
 				PRINTF("128b to decimal converted value: %s\n", qabuf);
 				qa_to_zil(qabuf, dispbuf, sizeof(dispbuf));
