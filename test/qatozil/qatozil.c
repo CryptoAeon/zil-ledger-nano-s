@@ -60,7 +60,6 @@ void ToZil(char *input, char *output, int shift)
 {
   int len = strlen(input);
   assert(len > 0 && len < MAX_BUF_LEN);
-  assert(shift == QA_ZIL_SHIFT || shift == QA_LI_SHIFT);
 
   if (len <= shift) {
     strcpy(output, "0.");
@@ -89,17 +88,22 @@ int main(int argc, char *argv[])
 {
   char qabuf[MAX_BUF_LEN], zilbuf[MAX_BUF_LEN];
 
-  if (argc != 2 || strlen(argv[1]) > 39) {
-    fprintf(stderr, "Usage: ./qatozil Qa [length of Qa <= 39 digits]\n");
+  int shift;
+  if (argc == 2) {
+    shift = QA_ZIL_SHIFT;
+    strcpy(qabuf, argv[1]);
+  } else if (argc == 4 && !strcmp(argv[1], "-shift") && strlen(argv[3]) <= 39) {
+    shift = atoi(argv[2]);
+    strcpy(qabuf, argv[3]);
+  } else {
+    fprintf(stderr, "Usage:./qatozil [-shift=%d] Qa (length of Qa <= 39 digits)\n", QA_ZIL_SHIFT);
     exit(1);
   }
 
-  /* Copy to a local buffer. */
-  strcpy(qabuf, argv[1]);
   /* Cleanse the input. */
   cleanse_input(qabuf);
   /* Convert Qa to Zil. */
-  ToZil(qabuf, zilbuf, QA_ZIL_SHIFT);
+  ToZil(qabuf, zilbuf, shift);
   /* Print output. */
   printf("%s\n", zilbuf);
 
