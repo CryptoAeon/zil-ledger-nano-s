@@ -85,4 +85,4 @@ Delete the Zilliqa app
   - (ledgerenv)...`$python -m ledgerblue.deleteApp --targetId 0x31100004 --appName Zilliqa`
 
 Install `app.hex` to the device
-  - (ledgerenv)...`$python -m ledgerblue.loadApp --path "44'/313'"  --curve "secp256k1" --tlv --targetId "0x31100004" --delete --fileName "app.hex" --appName "Zilliqa" --appVersion "0.2.0" --appFlags "0x40"`
+  - (ledgerenv)...`$python -m ledgerblue.loadApp --path "44'/313'"  --curve "secp256k1" --tlv --targetId "0x31100004" --delete --fileName "app.hex" --appName "Zilliqa" --appVersion "0.3.2" --appFlags "0x40"`
