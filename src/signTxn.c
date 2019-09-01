@@ -261,19 +261,19 @@ bool decode_callback (pb_istream_t *stream, const pb_field_t *field, void **arg)
 	case ProtoTransactionCoreInfo_toaddr_tag:
 		PRINTF("decode_callback: toaddr\n");
 		readlen = PUB_ADDR_BYTES_LEN;
-		tagread = "sendto:";
+		tagread = "sendto: ";
 		break;
 	case ByteArray_data_tag:
 		switch ((int) *arg) {
 		case ProtoTransactionCoreInfo_amount_tag:
 			PRINTF("decode_callback: amount\n");
 			readlen = ZIL_AMOUNT_GASPRICE_BYTES;
-			tagread = "amount(Zil):";
+			tagread = "amount(ZIL): ";
 			break;
 		case ProtoTransactionCoreInfo_gasprice_tag:
 			PRINTF("decode_callback: gasprice\n");
 			readlen = ZIL_AMOUNT_GASPRICE_BYTES;
-			tagread = "gasprice(Zil):";
+			tagread = "gasprice(ZIL): ";
 			break;
 		default:
 			PRINTF("decode_callback: arg: %d\n", (int) *arg);
