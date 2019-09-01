@@ -8,6 +8,9 @@
 /* "0." +  39 digits in UINT128_MAX + '\0' */
 #define MAX_BUF_LEN 42
 
+#define QA_ZIL_SHIFT 12
+#define LI_ZIL_SHIFT 6
+
 /* Filter out leading zero's and non-digit characters in a null terminated string. */
 void cleanse_input(char *buf) {
   int len = strlen(buf);
@@ -52,17 +55,18 @@ void remove_trailing_zeroes(char *buf)
 }
 
 /* Given a null terminated sequence of digits (value < UINT128_MAX),
- * divide it by 10^12 and pretty print the result. */
-void QaToZil(char *input, char *output)
+ * divide it by "shift" and pretty print the result. */
+void ToZil(char *input, char *output, int shift)
 {
   int len = strlen(input);
   assert(len > 0 && len < MAX_BUF_LEN);
+  assert(shift == QA_ZIL_SHIFT || shift == LI_ZIL_SHIFT);
 
-  if (len <= 12) {
+  if (len <= shift) {
     strcpy(output, "0.");
-    /* Insert (12 - len) 0s. */
-    for (int i = 0; i < (12 - len); i++) {
-      /* A bit inefficient, but it's ok, at most 12 iterations. */
+    /* Insert (shift - len) 0s. */
+    for (int i = 0; i < (shift - len); i++) {
+      /* A bit inefficient, but it's ok, at most shift iterations. */
       strcat(output, "0");
     }
     strcat(output, input);
@@ -70,12 +74,12 @@ void QaToZil(char *input, char *output)
     return;
   }
 
-  /* len >= 13. Copy the first len-12 characters. */
-  strncpy(output, input, len - 12);
+  /* len >= shift+1. Copy the first len-shift characters. */
+  strncpy(output, input, len - shift);
   /* append a decimal point. */
-  strcpy(output + len - 12, ".");
+  strcpy(output + len - shift, ".");
   /* copy the remaining characters in input. */
-  strcat(output, input + len - 12);  
+  strcat(output, input + len - shift);
   /* Remove trailing zeroes (after the decimal point). */
   remove_trailing_zeroes(output);
 }
@@ -95,7 +99,7 @@ int main(int argc, char *argv[])
   /* Cleanse the input. */
   cleanse_input(qabuf);
   /* Convert Qa to Zil. */
-  QaToZil(qabuf, zilbuf);
+  ToZil(qabuf, zilbuf, QA_ZIL_SHIFT);
   /* Print output. */
   printf("%s\n", zilbuf);
 
