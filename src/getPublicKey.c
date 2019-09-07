@@ -144,9 +144,8 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
             os_memcpy(G_io_apdu_buffer + tx, bech32Str, BECH32_ADDRSTR_LEN);
             tx += BECH32_ADDRSTR_LEN;
 
-            // Flush the APDU buffer, sending the response.
-            // Response contains both the public key and the public address.
-            io_exchange_with_code(SW_OK, tx);
+            PRINTF("Public Key: %.*h\n", publicKey.W_len, G_io_apdu_buffer);
+            PRINTF("Address: %s\n", bech32Str);
 
             // Prepare the comparison screen, filling in the header and body text.
             os_memmove(ctx->typeStr, "Compare:", 9);
@@ -159,6 +158,10 @@ ui_getPublicKey_approve_button(unsigned int button_mask, unsigned int button_mas
                 // So, first we need to convert to a human-readable form.
                 bin2hex(ctx->fullStr, sizeof(ctx->fullStr), G_io_apdu_buffer, publicKey.W_len);
             }
+
+            // Flush the APDU buffer, sending the response.
+            // Response contains both the public key and the public address.
+            io_exchange_with_code(SW_OK, tx);
 
             os_memmove(ctx->partialStr, ctx->fullStr, 12);
             ctx->partialStr[12] = '\0';
