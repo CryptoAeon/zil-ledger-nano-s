@@ -3,6 +3,17 @@
 
 #include "schnorr.h"
 
+// These are the offsets of various parts of a request APDU packet. INS
+// identifies the requested command (see above), and P1 and P2 are parameters
+// to the command.
+#define CLA          0xE0
+#define OFFSET_CLA   0x00
+#define OFFSET_INS   0x01
+#define OFFSET_P1    0x02
+#define OFFSET_P2    0x03
+#define OFFSET_LC    0x04
+#define OFFSET_CDATA 0x05
+
 // Use Zilliqa's DER decode function for signing?
 // (this shouldn't have any functional impact).
 #define DER_DECODE_ZILLIQA 0

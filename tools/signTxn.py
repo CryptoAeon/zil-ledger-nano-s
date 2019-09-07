@@ -71,7 +71,9 @@ def main(args):
             txnBytes = bytearray(0)
         hostBytesLeftBytes = struct.pack("<I", len(txnBytes))
         txnNSizeBytes = struct.pack("<I", len(txnNBytes))
-        apdu = hostBytesLeftBytes + txnNSizeBytes + txnNBytes
+        payload = hostBytesLeftBytes + txnNSizeBytes + txnNBytes
+        L_c = bytes([len(payload)])
+        apdu = prefix + L_c + payload
         result = dongle.exchange(apdu)
 
     print("Response: " + result.hex())

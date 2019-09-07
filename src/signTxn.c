@@ -216,9 +216,9 @@ bool istream_callback (pb_istream_t *stream, pb_byte_t *buf, size_t count)
 			G_io_apdu_buffer[0] = 0x90;
     	G_io_apdu_buffer[1] = 0x00;
 			unsigned rx = io_exchange(CHANNEL_APDU, 2);
-			uint32_t hostBytesLeftOffset = 0;
-			uint32_t txnLenOffset = 4;
-			uint32_t dataOffset = 8;
+			uint32_t hostBytesLeftOffset = OFFSET_CDATA + 0;
+			uint32_t txnLenOffset = OFFSET_CDATA + 4;
+			uint32_t dataOffset = OFFSET_CDATA + 8;
 
 			uint32_t hostBytesLeft = U4LE(G_io_apdu_buffer, hostBytesLeftOffset);
 			uint32_t txnLen = U4LE(G_io_apdu_buffer, txnLenOffset);
